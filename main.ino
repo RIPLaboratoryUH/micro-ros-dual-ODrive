@@ -121,9 +121,59 @@ struct ODriveUserData {
   bool received_feedback = false;
 };
 
+// Called every time a feedback message arrives from the ODrive
+void onFeedback(Get_Encoder_Estimates_msg_t& msg, void* user_data) {
+  ODriveUserData* odrv_user_data = static_cast<ODriveUserData*>(user_data);
+  odrv_user_data->last_feedback = msg;
+  odrv_user_data->received_feedback = true;
+}
+
+// Called every time a Heartbeat message arrives from the ODrive
+void onHeartbeat(Heartbeat_msg_t& msg, void* user_data) {
+  ODriveUserData* odrv_user_data = static_cast<ODriveUserData*>(user_data);
+  odrv_user_data->last_heartbeat = msg;
+  odrv_user_data->received_heartbeat = true;
+}
+
+
 ODriveUserData odrv16_user_data;
 ODriveUserData odrv19_user_data;
+// inputs actual velocity for left and right wheel, from odrive data
+//outputs linear vel in x dir in revs/s (i.e whatever units the input vels are)
+float generateLinearVel(float lwvel, float rwvel){
+float c1 = 1;
+float c2 =1;
+float gearratio = (12/40)*(12/40);
 
+return gearratio*(WHEELRAD/2)*(c1*lwvel +c2*rwvel) 
+}
+
+
+//inputs actual velocity for l and r wheel, from odrive data
+//outputs angular vel in z dir in rev/s (whatever units the input is)
+float generateAngularVel(float lwvel, float rwvel){
+float c1 = 1;
+float c2 =1;
+float gearratio = (12/40)*(12/40);
+
+return gearratio*(WHEELRAD/2)*((c1*lwvel-c2*rwvel)/WHEELSEP)
+}
+
+
+
+// Called for every message that arrives on the CAN bus
+
+void onCanMessage(const CanMsg& msg) {
+
+  for (auto odrive: odrives) {
+
+    onReceive(msg, *odrive);
+
+  }
+
+}
+
+//im like 78.23% sure that this message does come in as rev/s, so it should be good to go like that.
 void subscription_callback(const void *msgin) {
   const sensor_msgs__msg__JointState * msg = (const sensor_msgs__msg__JointState *)msgin;
   float vel = msg->velocity.data[0];
@@ -156,7 +206,42 @@ void setup()
   //setupIMU();
   setupCan();
   setupODrive();
-  
+odrv16.onFeedback(onFeedback, &odrv16_user_data);
+odrv16.onStatus(onHeartbeat, &odrv16_user_data);
+odrv19.onFeedback(onFeedback, &odrv19_user_data);
+odrv19.onStatus(onHeartbeat, &odrv19_user_data);
+ while (odrv16_user_data.last_heartbeat.Axis_State != ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL) {
+
+    odrv16.clearErrors();
+
+    delay(1);
+
+    odrv16.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
+
+    for (int i = 0; i < 15; ++i) {
+
+      delay(10);
+
+      pumpEvents(can_intf);
+
+    }
+
+  }
+   while (odrv19_user_data.last_heartbeat.Axis_State != ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL) {
+    odrv19.clearErrors();
+    delay(1);
+    odrv19.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
+
+    for (int i = 0; i < 15; ++i) {
+
+      delay(10);
+
+      pumpEvents(can_intf);
+
+    }
+
+  }
+
 }
 
 
