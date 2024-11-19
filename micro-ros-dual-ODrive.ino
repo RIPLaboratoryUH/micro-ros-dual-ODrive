@@ -15,6 +15,7 @@
 #include <nav_msgs/msg/odometry.h>
 #include <tf2_msgs/msg/tf_message.h>
 #include <std_msgs/msg/string.h>
+#include <std_msgs/msg/float32.h>
 
 
 // This is needed for the multiplexor
@@ -37,6 +38,8 @@ rclc_executor_t executor;
 rcl_subscription_t subscriber;
 rcl_publisher_t Odompublisher;
 rcl_publisher_t TFpublisher;
+rcl_publisher_t LeftWheelPublisher;
+rcl_publisher_t RightWheelPublisher;
 rclc_support_t support;
 rcl_allocator_t allocator;
 rcl_node_t node;
@@ -49,6 +52,9 @@ sensor_msgs__msg__JointState msg;
 
 nav_msgs__msg__Odometry odom_msg;
 tf2_msgs__msg__TFMessage tf_msg;
+std_msgs__msg__Float32 lwpos;
+std_msgs__msg__Float32 rwpos;
+
 // this allows for frames to be specified in msgs, as they ask for a specific type. see below
 //https://docs.vulcanexus.org/en/iron/rst/microros_documentation/user_api/user_api_utilities.html
 const char *str = "odom";
@@ -115,6 +121,17 @@ bool create_entities()
       &node,
       ROSIDL_GET_MSG_TYPE_SUPPORT(nav_msgs, msg, Odometry),
       "/diff_drive_controller/odom"));
+      RCCHECK(rclc_publisher_init_default(
+      &LeftWheelPublisher,
+      &node,
+      ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32),
+      "/left_wheel_pos"));
+
+      RCCHECK(rclc_publisher_init_default(
+      &RightWheelPublisher,
+      &node,
+      ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32),
+      "/right_wheel_pos"));
 
 RCCHECK(rclc_publisher_init_default(
       &TFpublisher,
@@ -140,7 +157,7 @@ RCCHECK(rclc_publisher_init_default(
       conf);
     
   // create executor
-  RCCHECK(rclc_executor_init(&executor, &support.context, 5, &allocator));
+  RCCHECK(rclc_executor_init(&executor, &support.context, 7, &allocator));
   RCCHECK(rclc_executor_add_subscription(&executor, &subscriber, &msg, &subscription_callback, ON_NEW_DATA));
   RCCHECK(rclc_executor_add_timer(&executor, &timer));
   return true;
@@ -152,6 +169,9 @@ void destroy_entities()
   rcl_publisher_fini(&Odompublisher, &node);
   rcl_publisher_fini(&TFpublisher, &node);
   rcl_subscription_fini(&subscriber, &node);
+  rcl_publisher_fini(&LeftWheelPublisher, &node);
+  rcl_publisher_fini(&RightWheelPublisher, &node);
+
   rcl_timer_fini(&timer);
   rcl_clock_fini(&clock);
   rclc_executor_fini(&executor);
@@ -279,8 +299,8 @@ float y = 0.0;
 float x_pos = 0.0;
 float y_pos = 0.0;
 float theta_pos = 0.0;
-  Get_Encoder_Estimates_msg_t encoderFeedback16;
-    Get_Encoder_Estimates_msg_t encoderFeedback19;
+Get_Encoder_Estimates_msg_t encoderFeedback16;
+Get_Encoder_Estimates_msg_t encoderFeedback19;
 
 
 
@@ -302,12 +322,11 @@ int64_t time_ns_old;
 
 
 
-void odomUpdate()
-{ 
+void odomUpdate(){ 
     rmw_uros_sync_session(100);
   if (rmw_uros_epoch_synchronized())
   {
-time_ns_now = rmw_uros_epoch_nanos();
+ time_ns_now = rmw_uros_epoch_nanos();
   }else{
     return;
   }
@@ -388,11 +407,17 @@ void subscription_callback(const void *msgin)
 // every x seconds, we will generate and publish the odometry data
 void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
 {
-  odomUpdate();
 
-  
+  encoderFeedback16 = odrv16_user_data.last_feedback;
+  encoderFeedback19 = odrv19_user_data.last_feedback;
+  lwpos.data= double(encoderFeedback16.Pos_Estimate); 
+  rwpos.data =  double(encoderFeedback19.Pos_Estimate);
+
+  odomUpdate();
   RCSOFTCHECK(rcl_publish(&Odompublisher, &odom_msg, NULL));
   RCSOFTCHECK(rcl_publish(&TFpublisher, &tf_msg, NULL));
+  RCSOFTCHECK(rcl_publish(&LeftWheelPublisher, &lwpos, NULL));
+  RCSOFTCHECK(rcl_publish(&RightWheelPublisher, &rwpos, NULL));
 }
 
 void setup()
