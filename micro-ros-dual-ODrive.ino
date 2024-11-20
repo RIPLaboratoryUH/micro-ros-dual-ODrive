@@ -330,16 +330,6 @@ void odomUpdate(){
   }else{
     return;
   }
-
-  if (odrv16_user_data.last_heartbeat.Axis_State != ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL or odrv19_user_data.last_heartbeat.Axis_State != ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL)
-  {
-    odrv16.clearErrors();
-    odrv19.clearErrors();
-    odrv16.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
-    odrv19.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
-  }
-
-  
 if(odrv16_user_data.received_feedback == true || odrv19_user_data.received_feedback == true){
 
   encoderFeedback16 = odrv16_user_data.last_feedback;
