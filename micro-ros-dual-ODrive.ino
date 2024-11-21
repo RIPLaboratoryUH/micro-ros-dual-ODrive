@@ -18,6 +18,8 @@
 #include <std_msgs/msg/float32.h>
 
 
+
+
 // This is needed for the multiplexor
 #include <Wire.h>
 
@@ -37,21 +39,20 @@ static micro_ros_utilities_memory_conf_t conf = {0};
 rclc_executor_t executor;
 rcl_subscription_t subscriber;
 rcl_publisher_t Odompublisher;
-rcl_publisher_t TFpublisher;
+// rcl_publisher_t TFpublisher;
 rcl_publisher_t LeftWheelPublisher;
 rcl_publisher_t RightWheelPublisher;
 rclc_support_t support;
 rcl_allocator_t allocator;
 rcl_node_t node;
 rcl_clock_t clock;
-
 float time_now, time_old = 0.0;
 
 rcl_timer_t timer; // If we want to run sensor updates at different intervals, we create more than one timer
 sensor_msgs__msg__JointState msg;
 
 nav_msgs__msg__Odometry odom_msg;
-tf2_msgs__msg__TFMessage tf_msg;
+// tf2_msgs__msg__TFMessage tf_msg;
 std_msgs__msg__Float32 lwpos;
 std_msgs__msg__Float32 rwpos;
 
@@ -133,11 +134,11 @@ bool create_entities()
       ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32),
       "/right_wheel_pos"));
 
-RCCHECK(rclc_publisher_init_default(
-      &TFpublisher,
-      &node,
-      ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
-      "/tf"));
+// RCCHECK(rclc_publisher_init_default(
+//       &TFpublisher,
+//       &node,
+//       ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
+//       "/tf"));
 
   const unsigned int timer_timeout = 10;
   RCCHECK(rclc_timer_init_default(
@@ -151,10 +152,10 @@ RCCHECK(rclc_publisher_init_default(
       ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, JointState),
       &msg,
       conf);
-  bool success1 = micro_ros_utilities_create_message_memory(
-      ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
-      &tf_msg,
-      conf);
+  // bool success1 = micro_ros_utilities_create_message_memory(
+  //     ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
+  //     &tf_msg,
+  //     conf);
     
   // create executor
   RCCHECK(rclc_executor_init(&executor, &support.context, 7, &allocator));
@@ -167,7 +168,7 @@ void destroy_entities()
   rmw_context_t *rmw_context = rcl_context_get_rmw_context(&support.context);
   (void)rmw_uros_set_context_entity_destroy_session_timeout(rmw_context, 0);
   rcl_publisher_fini(&Odompublisher, &node);
-  rcl_publisher_fini(&TFpublisher, &node);
+  // rcl_publisher_fini(&TFpublisher, &node);
   rcl_subscription_fini(&subscriber, &node);
   rcl_publisher_fini(&LeftWheelPublisher, &node);
   rcl_publisher_fini(&RightWheelPublisher, &node);
@@ -303,6 +304,26 @@ Get_Encoder_Estimates_msg_t encoderFeedback16;
 Get_Encoder_Estimates_msg_t encoderFeedback19;
 
 
+//generates a quaternion from euler angles
+// we are only concerned with the z axis rotation, which is q
+double euler_to_quat(float x, float y, float z, double* q) {
+    
+    double c1 = cos((y*3.14/180.0)/2);
+    double c2 = cos((z*3.14/180.0)/2);
+    double c3 = cos((x*3.14/180.0)/2);
+
+    double s1 = sin((y*3.14/180.0)/2);
+    double s2 = sin((z*3.14/180.0)/2);
+    double s3 = sin((x*3.14/180.0)/2);
+
+    q[0] = c1 * c2 * c3 - s1 * s2 * s3;
+    q[1] = s1 * s2 * c3 + c1 * c2 * s3;
+    q[2] = s1 * c2 * c3 + c1 * s2 * s3;
+    q[3] = c1 * s2 * c3 - s1 * c2 * s3;
+    return c1 * s2 * c3 - s1 * c2 * s3;
+}
+
+
 
 // inputs actual velocity for left and right wheel, from odrive data
 // outputs linear vel in x dir
@@ -355,16 +376,23 @@ if(odrv16_user_data.received_feedback == true || odrv19_user_data.received_feedb
   x_pos += x;
   y_pos += y;
   theta_pos += delta_theta; // check 360 degree wrap
-  
+ double* q;
+  double quatZ = euler_to_quat(0, 0, theta_pos, q);
+
+
   // fill in the message
   odom_msg.header.stamp.sec = time_ns_now / 1000000000;
-  // odom_msg.header.stamp.nanosec = time_ns_now;
+  odom_msg.header.stamp.nanosec = time_ns_now % 1000000000;
   odom_msg.header.frame_id = odom_str;
   odom_msg.child_frame_id = base_str;
   odom_msg.pose.pose.position.x = x_pos;
   odom_msg.pose.pose.position.y = y_pos;
   odom_msg.pose.pose.position.z = 0;
-  odom_msg.pose.pose.orientation.z = sin(theta_pos / 2);
+
+  // odom_msg.pose.pose.orientation.x = (double)q[1];
+  // odom_msg.pose.pose.orientation.y = (double)q[2];
+  odom_msg.pose.pose.orientation.z =quatZ;
+  // odom_msg.pose.pose.orientation.w =(double) q[0];
 
   odom_msg.twist.twist.linear.x = linvel;
   odom_msg.twist.twist.linear.y = 0;
@@ -373,14 +401,14 @@ if(odrv16_user_data.received_feedback == true || odrv19_user_data.received_feedb
 
 // //tf publisher
 
-  tf_msg.transforms.data[0].header.frame_id = odom_str;
-  tf_msg.transforms.data[0].child_frame_id = base_str;
-    tf_msg.transforms.data[0].header.stamp.sec = time_ns_now / 1000000000;
-    // tf_msg.transforms.data[0].header.stamp.nanosec = time_ns_now;
-    tf_msg.transforms.data[0].transform.translation.x = x_pos;
-    tf_msg.transforms.data[0].transform.translation.y = y_pos;
-    tf_msg.transforms.data[0].transform.translation.z = 0;
-    tf_msg.transforms.data[0].transform.rotation.z = sin(theta_pos / 2);
+  // tf_msg.transforms.data[0].header.frame_id = odom_str;
+  // tf_msg.transforms.data[0].child_frame_id = base_str;
+  //   tf_msg.transforms.data[0].header.stamp.sec = time_ns_now / 1000000000;
+  //   // tf_msg.transforms.data[0].header.stamp.nanosec = time_ns_now;
+  //   tf_msg.transforms.data[0].transform.translation.x = x_pos;
+  //   tf_msg.transforms.data[0].transform.translation.y = y_pos;
+  //   tf_msg.transforms.data[0].transform.translation.z = 0;
+  //   tf_msg.transforms.data[0].transform.rotation.z = sin(theta_pos / 2);
     
 
 
@@ -392,7 +420,6 @@ if(odrv16_user_data.received_feedback == true || odrv19_user_data.received_feedb
 
 /*end odom data generation*/
 
-// im like 78.23% sure that this message does come in as rev/s, so it should be good to go like that.
 void subscription_callback(const void *msgin)
 {
   const sensor_msgs__msg__JointState *msg = (const sensor_msgs__msg__JointState *)msgin;
@@ -408,14 +435,14 @@ void subscription_callback(const void *msgin)
 void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
 {
 
-  encoderFeedback16 = odrv16_user_data.last_feedback;
-  encoderFeedback19 = odrv19_user_data.last_feedback;
-  lwpos.data= double(encoderFeedback16.Pos_Estimate); 
-  rwpos.data =  double(encoderFeedback19.Pos_Estimate);
+  // encoderFeedback16 = odrv16_user_data.last_feedback;
+  // encoderFeedback19 = odrv19_user_data.last_feedback;
+  // lwpos.data= double(encoderFeedback16.Pos_Estimate); 
+  // rwpos.data =  double(encoderFeedback19.Pos_Estimate);
 
   odomUpdate();
   RCSOFTCHECK(rcl_publish(&Odompublisher, &odom_msg, NULL));
-  RCSOFTCHECK(rcl_publish(&TFpublisher, &tf_msg, NULL));
+  // RCSOFTCHECK(rcl_publish(&TFpublisher, &tf_msg, NULL));
   RCSOFTCHECK(rcl_publish(&LeftWheelPublisher, &lwpos, NULL));
   RCSOFTCHECK(rcl_publish(&RightWheelPublisher, &rwpos, NULL));
 }
