@@ -416,8 +416,10 @@ if(odrv16_user_data.received_feedback == true || odrv19_user_data.received_feedb
  
   motor16msg.x = micros();
   motor16msg.y = encoderFeedback16.Vel_Estimate;
-  motor16msg.z = pwrMsg16.Electrical_Power; 
-
+  motor16msg.z = pwrMsg16.Electrical_Power;
+  if (motor16msg.x > 1) { 
+  RCSOFTCHECK(rcl_publish(&Odompublisher, &motor16msg, NULL));
+  }
 
   odrv16_user_data.received_feedback = false;
   odrv19_user_data.received_feedback = false;
@@ -455,7 +457,6 @@ void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
   RCSOFTCHECK(rcl_publish(&TFpublisher, &tf_msg, NULL));
   RCSOFTCHECK(rcl_publish(&LeftWheelPublisher, &lwpos, NULL));
   RCSOFTCHECK(rcl_publish(&RightWheelPublisher, &rwpos, NULL));
-  RCSOFTCHECK(rcl_publish(&Odompublisher, &motor16msg, NULL));
 }
 
 void setup()
