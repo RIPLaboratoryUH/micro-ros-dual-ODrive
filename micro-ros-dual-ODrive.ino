@@ -376,8 +376,8 @@ if(odrv16_user_data.received_feedback == true || odrv19_user_data.received_feedb
   x_pos += x;
   y_pos += y;
   theta_pos += delta_theta; // check 360 degree wrap
- double* q;
-  double quatZ = euler_to_quat(0, 0, theta_pos, q);
+//  double* q;
+//   double quatZ = euler_to_quat(0, 0, theta_pos, q);
 
 
   // fill in the message
@@ -391,7 +391,7 @@ if(odrv16_user_data.received_feedback == true || odrv19_user_data.received_feedb
 
   // odom_msg.pose.pose.orientation.x = (double)q[1];
   // odom_msg.pose.pose.orientation.y = (double)q[2];
-  odom_msg.pose.pose.orientation.z =quatZ;
+  odom_msg.pose.pose.orientation.z =0;
   // odom_msg.pose.pose.orientation.w =(double) q[0];
 
   odom_msg.twist.twist.linear.x = linvel;
