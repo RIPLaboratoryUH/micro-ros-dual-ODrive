@@ -47,6 +47,8 @@ rclc_support_t support;
 rcl_allocator_t allocator;
 rcl_node_t node;
 rcl_clock_t clock;
+rcl_publisher_t motor16Publisher;
+
 
 float time_now, time_old = 0.0;
 
@@ -143,7 +145,7 @@ bool create_entities()
       "/tf"));
 
  RCCHECK(rclc_publisher_init_default(
-      &Odompublisher,
+      &motor16Publisher,
       &node,
       ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Vector3),
       "motor_16_data"));
@@ -167,7 +169,7 @@ bool create_entities()
       conf);
     
   // create executor
-  RCCHECK(rclc_executor_init(&executor, &support.context, 7, &allocator));
+  RCCHECK(rclc_executor_init(&executor, &support.context, 8, &allocator));
   RCCHECK(rclc_executor_add_subscription(&executor, &subscriber, &msg, &subscription_callback, ON_NEW_DATA));
   RCCHECK(rclc_executor_add_timer(&executor, &timer));
   return true;
@@ -181,6 +183,7 @@ void destroy_entities()
   rcl_subscription_fini(&subscriber, &node);
   rcl_publisher_fini(&LeftWheelPublisher, &node);
   rcl_publisher_fini(&RightWheelPublisher, &node);
+  rcl_publisher_fini(&motor16Publisher, &node);
 
   rcl_timer_fini(&timer);
   rcl_clock_fini(&clock);
@@ -416,10 +419,8 @@ if(odrv16_user_data.received_feedback == true || odrv19_user_data.received_feedb
  
   motor16msg.x = micros();
   motor16msg.y = encoderFeedback16.Vel_Estimate;
-  motor16msg.z = pwrMsg16.Electrical_Power;
-  if (motor16msg.x > 1) { 
-  RCSOFTCHECK(rcl_publish(&Odompublisher, &motor16msg, NULL));
-  }
+  motor16msg.z = pwrMsg16.Electrical_Power; 
+
 
   odrv16_user_data.received_feedback = false;
   odrv19_user_data.received_feedback = false;
@@ -457,6 +458,8 @@ void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
   RCSOFTCHECK(rcl_publish(&TFpublisher, &tf_msg, NULL));
   RCSOFTCHECK(rcl_publish(&LeftWheelPublisher, &lwpos, NULL));
   RCSOFTCHECK(rcl_publish(&RightWheelPublisher, &rwpos, NULL));
+  RCSOFTCHECK(rcl_publish(&motor16Publisher, &motor16msg, NULL));
+
 }
 
 void setup()
