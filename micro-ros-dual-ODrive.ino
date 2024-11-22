@@ -17,6 +17,9 @@
 #include <std_msgs/msg/string.h>
 #include <std_msgs/msg/float32.h>
 
+#include <geometry_msgs/msg/vector3.h>
+geometry_msgs__msg__Vector3 motor16msg;
+
 
 // This is needed for the multiplexor
 #include <Wire.h>
@@ -133,11 +136,18 @@ bool create_entities()
       ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32),
       "/right_wheel_pos"));
 
-RCCHECK(rclc_publisher_init_default(
+  RCCHECK(rclc_publisher_init_default(
       &TFpublisher,
       &node,
       ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
       "/tf"));
+
+ RCCHECK(rclc_publisher_init_default(
+      &Odompublisher,
+      &node,
+      ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Vector3),
+      "motor_16_data"));
+
 
   const unsigned int timer_timeout = 10;
   RCCHECK(rclc_timer_init_default(
@@ -244,6 +254,12 @@ void onCanMessage(const CanMsg &msg)
     onReceive(msg, *odrive);
   }
 }
+
+bool getPower(Get_Powers_msg_t &msg, uint16_t timeout_ms = 10); //already in can.h
+Get_Powers_msg_t pwrMsg16;
+
+
+
 void setupODrive()
 {
   Serial.println("Starting ODriveCAN");
@@ -344,6 +360,8 @@ if(odrv16_user_data.received_feedback == true || odrv19_user_data.received_feedb
 
   encoderFeedback16 = odrv16_user_data.last_feedback;
   encoderFeedback19 = odrv19_user_data.last_feedback;
+
+  
    lwvel = encoderFeedback16.Vel_Estimate; 
    rwvel = encoderFeedback19.Vel_Estimate;
    if (lwvel < 0.01){
@@ -391,11 +409,19 @@ if(odrv16_user_data.received_feedback == true || odrv19_user_data.received_feedb
     tf_msg.transforms.data[0].transform.translation.y = y_pos;
     tf_msg.transforms.data[0].transform.translation.z = 0;
     tf_msg.transforms.data[0].transform.rotation.z = sin(theta_pos / 2);
-    
 
+
+  odrv16.request(pwrMsg16 , 1);
+  
+ 
+  motor16msg.x = micros();
+  motor16msg.y = encoderFeedback16.Vel_Estimate;
+  motor16msg.z = pwrMsg16.Electrical_Power; 
 
 
   odrv16_user_data.received_feedback = false;
+  odrv19_user_data.received_feedback = false;
+
   time_ns_old = time_ns_now;
 }
 }
@@ -424,10 +450,12 @@ void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
   rwpos.data =  double(encoderFeedback19.Pos_Estimate);
 
   odomUpdate();
+  
   RCSOFTCHECK(rcl_publish(&Odompublisher, &odom_msg, NULL));
   RCSOFTCHECK(rcl_publish(&TFpublisher, &tf_msg, NULL));
   RCSOFTCHECK(rcl_publish(&LeftWheelPublisher, &lwpos, NULL));
   RCSOFTCHECK(rcl_publish(&RightWheelPublisher, &rwpos, NULL));
+  RCSOFTCHECK(rcl_publish(&Odompublisher, &motor16msg, NULL));
 }
 
 void setup()
