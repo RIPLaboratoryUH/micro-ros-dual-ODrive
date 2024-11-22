@@ -19,6 +19,7 @@
 
 #include <geometry_msgs/msg/vector3.h>
 geometry_msgs__msg__Vector3 motor16msg;
+geometry_msgs__msg__Vector3 motor19msg;
 
 
 // This is needed for the multiplexor
@@ -48,6 +49,8 @@ rcl_allocator_t allocator;
 rcl_node_t node;
 rcl_clock_t clock;
 rcl_publisher_t motor16Publisher;
+rcl_publisher_t motor19Publisher;
+
 
 
 float time_now, time_old = 0.0;
@@ -149,7 +152,11 @@ bool create_entities()
       &node,
       ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Vector3),
       "motor_16_data"));
-
+ RCCHECK(rclc_publisher_init_default(
+      &motor19Publisher,
+      &node,
+      ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Vector3),
+      "motor_19_data"));
 
   const unsigned int timer_timeout = 10;
   RCCHECK(rclc_timer_init_default(
@@ -169,7 +176,7 @@ bool create_entities()
       conf);
     
   // create executor
-  RCCHECK(rclc_executor_init(&executor, &support.context, 8, &allocator));
+  RCCHECK(rclc_executor_init(&executor, &support.context, 9, &allocator));
   RCCHECK(rclc_executor_add_subscription(&executor, &subscriber, &msg, &subscription_callback, ON_NEW_DATA));
   RCCHECK(rclc_executor_add_timer(&executor, &timer));
   return true;
@@ -184,6 +191,8 @@ void destroy_entities()
   rcl_publisher_fini(&LeftWheelPublisher, &node);
   rcl_publisher_fini(&RightWheelPublisher, &node);
   rcl_publisher_fini(&motor16Publisher, &node);
+  rcl_publisher_fini(&motor19Publisher, &node);
+
 
   rcl_timer_fini(&timer);
   rcl_clock_fini(&clock);
@@ -260,6 +269,8 @@ void onCanMessage(const CanMsg &msg)
 
 bool getPower(Get_Powers_msg_t &msg, uint16_t timeout_ms = 10); //already in can.h
 Get_Powers_msg_t pwrMsg16;
+Get_Powers_msg_t pwrMsg19;
+
 
 
 
@@ -415,11 +426,17 @@ if(odrv16_user_data.received_feedback == true || odrv19_user_data.received_feedb
 
 
   odrv16.request(pwrMsg16 , 1);
+  odrv19.request(pwrMsg19 , 1);
+
   
  
   motor16msg.x = micros();
   motor16msg.y = encoderFeedback16.Vel_Estimate;
   motor16msg.z = pwrMsg16.Electrical_Power; 
+
+  motor19msg.x = micros();
+  motor19msg.y = encoderFeedback19.Vel_Estimate;
+  motor19msg.z = pwrMsg19.Electrical_Power; 
 
 
   odrv16_user_data.received_feedback = false;
@@ -459,6 +476,8 @@ void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
   RCSOFTCHECK(rcl_publish(&LeftWheelPublisher, &lwpos, NULL));
   RCSOFTCHECK(rcl_publish(&RightWheelPublisher, &rwpos, NULL));
   RCSOFTCHECK(rcl_publish(&motor16Publisher, &motor16msg, NULL));
+  RCSOFTCHECK(rcl_publish(&motor19Publisher, &motor19msg, NULL));
+
 
 }
 
