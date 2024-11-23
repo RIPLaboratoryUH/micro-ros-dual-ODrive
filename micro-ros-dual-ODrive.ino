@@ -53,8 +53,6 @@ sensor_msgs__msg__JointState msg;
 
 nav_msgs__msg__Odometry odom_msg;
 // tf2_msgs__msg__TFMessage tf_msg;
-std_msgs__msg__Float32 lwpos;
-std_msgs__msg__Float32 rwpos;
 
 // this allows for frames to be specified in msgs, as they ask for a specific type. see below
 //https://docs.vulcanexus.org/en/iron/rst/microros_documentation/user_api/user_api_utilities.html
@@ -286,20 +284,25 @@ bool setupCan()
 }
 
 /*begin odom data generation*/
-float c1 = 1.0;
-float c2 = 1.0;
-float lwvel = 0.0;
-float rwvel = 0.0;
-float linvel = 0.0;
-float angvel = 0.0;
-float delta_t = 0.0;
-float delta_s = 0.0;
-float delta_theta =0.0;
-float x = 0.0;
-float y = 0.0;
-float x_pos = 0.0;
-float y_pos = 0.0;
-float theta_pos = 0.0;
+float wheelc1 = 1.0;
+float wheelc2 = 1.0;
+float lwvel;
+float rwvel;
+float linvel;
+float angvel;
+float delta_t;
+float delta_s;
+float delta_theta;
+float x;
+float y;
+float x_pos;
+float y_pos;
+float theta_pos;
+float lwpos;
+float rwpos;
+float Davg;
+float Dth;
+
 Get_Encoder_Estimates_msg_t encoderFeedback16;
 Get_Encoder_Estimates_msg_t encoderFeedback19;
 
@@ -329,14 +332,14 @@ double euler_to_quat(float x, float y, float z, double* q) {
 // outputs linear vel in x dir
 float generateLinearVel(float lwvel, float rwvel)
 {
-  return GEARRATIO * (WHEELRAD / 2) * (c1 * lwvel + c2 * rwvel);
+  return GEARRATIO * (WHEELRAD / 2) * (wheelc1 * lwvel + wheelc2 * rwvel);
 }
 
 // inputs actual velocity for l and r wheel, from odrive data
 // outputs angular vel in z dir
 float generateAngularVel(float lwvel, float rwvel)
 {
-  return GEARRATIO * (WHEELRAD / 2) * ((c1 * lwvel - c2 * rwvel) / WHEELSEP);
+  return GEARRATIO * (WHEELRAD / 2) * ((wheelc1 * lwvel - wheelc2 * rwvel) / WHEELSEP);
 }
 int64_t time_ns_now;
 int64_t time_ns_old;
@@ -344,40 +347,58 @@ int64_t time_ns_old;
 
 
 void odomUpdate(){ 
-    rmw_uros_sync_session(100);
-  if (rmw_uros_epoch_synchronized())
-  {
- time_ns_now = rmw_uros_epoch_nanos();
-  }else{
-    return;
-  }
-if(odrv16_user_data.received_feedback == true || odrv19_user_data.received_feedback == true){
+
 
   encoderFeedback16 = odrv16_user_data.last_feedback;
   encoderFeedback19 = odrv19_user_data.last_feedback;
    lwvel = encoderFeedback16.Vel_Estimate; 
    rwvel = encoderFeedback19.Vel_Estimate;
-   if (lwvel < 0.01){
-     lwvel = 0;
-   }
-   if (rwvel < 0.01){
-     rwvel = 0;
-   }
+   lwpos = encoderFeedback16.Pos_Estimate;
+    rwpos = encoderFeedback19.Pos_Estimate;
 
-  linvel = generateLinearVel(lwvel, rwvel);
-  angvel = generateAngularVel(lwvel, rwvel);
+  //  if (lwvel < 0.0001){
+  //    lwvel = 0;
+  //  }
+  //  if (rwvel < 0.0001){
+  //    rwvel = 0;
+  //  }
 
-  delta_t = (time_ns_now - time_ns_old) / 1000000000; // convert to seconds
-  delta_s = linvel * delta_t; // assume no accel
-  delta_theta = angvel * delta_t; // assume no accel
-  x = delta_s * cos(theta_pos);
-  y = delta_s * sin(theta_pos);
+  // linvel = generateLinearVel(lwvel, rwvel);
+  // angvel = generateAngularVel(lwvel, rwvel);
+
+// if (linvel < 0.001){
+//   linvel = 0;
+// }
+// if (angvel < 0.001){
+//   angvel = 0;
+// }
+lwpos = lwpos * WHEELRAD * GEARRATIO * 2 * 3.14;
+rwpos = rwpos * WHEELRAD * GEARRATIO * 2 * 3.14; 
+Davg = (lwpos+rwpos)/2;
+Dth = (lwpos-rwpos)/WHEELSEP;
+x = Davg * cos(theta_pos + Dth/2);
+y = Davg * sin(theta_pos +Dth/2);
+
+theta_pos += Dth;
+if (theta_pos > 3.14){
+  theta_pos = theta_pos - (2*3.14);
+}
+if (theta_pos < -3.14){
+  theta_pos = theta_pos + (2*3.14);
+}
+
+  // delta_t = (time_ns_now - time_ns_old) / 1000000000; // convert to seconds
+  // delta_s = linvel * delta_t; // assume no accel
+  // delta_theta = angvel * delta_t; // assume no accel
+  // x = delta_s * cos(theta_pos);
+  // y = delta_s * sin(theta_pos);
+
 
   x_pos += x;
   y_pos += y;
-  theta_pos += delta_theta; // check 360 degree wrap
-//  double* q;
-//   double quatZ = euler_to_quat(0, 0, theta_pos, q);
+  // theta_pos += delta_theta;
+double q[4];
+euler_to_quat(0, 0, theta_pos, q);
 
 
   // fill in the message
@@ -389,10 +410,10 @@ if(odrv16_user_data.received_feedback == true || odrv19_user_data.received_feedb
   odom_msg.pose.pose.position.y = y_pos;
   odom_msg.pose.pose.position.z = 0;
 
-  // odom_msg.pose.pose.orientation.x = (double)q[1];
-  // odom_msg.pose.pose.orientation.y = (double)q[2];
-  odom_msg.pose.pose.orientation.z =0;
-  // odom_msg.pose.pose.orientation.w =(double) q[0];
+  odom_msg.pose.pose.orientation.x = (double)q[1];
+  odom_msg.pose.pose.orientation.y = (double)q[2];
+  odom_msg.pose.pose.orientation.z =(double) q[3];
+  odom_msg.pose.pose.orientation.w =(double) q[0];
 
   odom_msg.twist.twist.linear.x = linvel;
   odom_msg.twist.twist.linear.y = 0;
@@ -413,10 +434,9 @@ if(odrv16_user_data.received_feedback == true || odrv19_user_data.received_feedb
 
 
 
-  odrv16_user_data.received_feedback = false;
   time_ns_old = time_ns_now;
 }
-}
+
 
 /*end odom data generation*/
 
@@ -434,17 +454,19 @@ void subscription_callback(const void *msgin)
 // every x seconds, we will generate and publish the odometry data
 void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
 {
+    rmw_uros_sync_session(100);
+  if (rmw_uros_epoch_synchronized())
+  {
+ time_ns_now = rmw_uros_epoch_nanos();
+  }
 
-  // encoderFeedback16 = odrv16_user_data.last_feedback;
-  // encoderFeedback19 = odrv19_user_data.last_feedback;
-  // lwpos.data= double(encoderFeedback16.Pos_Estimate); 
-  // rwpos.data =  double(encoderFeedback19.Pos_Estimate);
-
-  odomUpdate();
-  RCSOFTCHECK(rcl_publish(&Odompublisher, &odom_msg, NULL));
+  if((odrv16_user_data.received_feedback == true && odrv19_user_data.received_feedback == true) && (time_ns_now - time_ns_old > 1000000000/1000)){
+odomUpdate();
+RCSOFTCHECK(rcl_publish(&Odompublisher, &odom_msg, NULL));
+}
   // RCSOFTCHECK(rcl_publish(&TFpublisher, &tf_msg, NULL));
-  RCSOFTCHECK(rcl_publish(&LeftWheelPublisher, &lwpos, NULL));
-  RCSOFTCHECK(rcl_publish(&RightWheelPublisher, &rwpos, NULL));
+  // RCSOFTCHECK(rcl_publish(&LeftWheelPublisher, &lwpos, NULL));
+  // RCSOFTCHECK(rcl_publish(&RightWheelPublisher, &rwpos, NULL));
 }
 
 void setup()
