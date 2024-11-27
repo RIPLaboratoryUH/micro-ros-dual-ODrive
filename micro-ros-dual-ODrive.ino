@@ -298,8 +298,12 @@ float y;
 float x_pos;
 float y_pos;
 float theta_pos;
-float lwpos;
-float rwpos;
+float lwpos = 0;
+float rwpos = 0;
+float lwpos_prev = 0;
+float rwpos_prev = 0;
+float delta_lwpos;
+float delta_rwpos;
 float Davg;
 float Dth;
 
@@ -319,7 +323,7 @@ double euler_to_quat(float x, float y, float z, double* q) {
     double s2 = sin((z*3.14/180.0)/2);
     double s3 = sin((x*3.14/180.0)/2);
 
-    q[0] = c1 * c2 * c3 - s1 * s2 * s3;
+    q[0] = 1;
     q[1] = s1 * s2 * c3 + c1 * c2 * s3;
     q[2] = s1 * c2 * c3 + c1 * s2 * s3;
     q[3] = c1 * s2 * c3 - s1 * c2 * s3;
@@ -343,12 +347,26 @@ float generateAngularVel(float lwvel, float rwvel)
 }
 int64_t time_ns_now;
 int64_t time_ns_old;
-
+bool first = true;
 
 
 void odomUpdate(){ 
 
 
+
+
+if (first){
+  x_pos = 0;
+  y_pos = 0;
+  theta_pos = 0;
+  lwpos = 0;
+  rwpos = 0;
+  
+  //send some command to odrive that resets pos of encoders to 0
+  odrv16_user_data.last_feedback.Pos_Estimate = 0;
+  odrv19_user_data.last_feedback.Pos_Estimate = 0;
+  first = false;
+}
   encoderFeedback16 = odrv16_user_data.last_feedback;
   encoderFeedback19 = odrv19_user_data.last_feedback;
    lwvel = encoderFeedback16.Vel_Estimate; 
@@ -363,8 +381,8 @@ void odomUpdate(){
   //    rwvel = 0;
   //  }
 
-  // linvel = generateLinearVel(lwvel, rwvel);
-  // angvel = generateAngularVel(lwvel, rwvel);
+  linvel = generateLinearVel(lwvel, rwvel);
+  angvel = generateAngularVel(lwvel, rwvel);
 
 // if (linvel < 0.001){
 //   linvel = 0;
@@ -374,9 +392,12 @@ void odomUpdate(){
 // }
 lwpos = lwpos * WHEELRAD * GEARRATIO * 2 * 3.14;
 rwpos = rwpos * WHEELRAD * GEARRATIO * 2 * 3.14; 
-Davg = (lwpos+rwpos)/2;
-Dth = (lwpos-rwpos)/WHEELSEP;
-x = Davg * cos(theta_pos + Dth/2);
+delta_lwpos = lwpos - lwpos_prev;
+delta_rwpos = rwpos - rwpos_prev;
+
+Davg = (delta_lwpos+delta_rwpos)/2;
+Dth = (delta_lwpos-delta_rwpos)/WHEELSEP;
+x= Davg * cos(theta_pos + Dth/2);
 y = Davg * sin(theta_pos +Dth/2);
 
 theta_pos += Dth;
@@ -435,6 +456,8 @@ euler_to_quat(0, 0, theta_pos, q);
 
 
   time_ns_old = time_ns_now;
+  lwpos_prev = lwpos;
+  rwpos_prev = rwpos;
 }
 
 
@@ -460,13 +483,13 @@ void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
  time_ns_now = rmw_uros_epoch_nanos();
   }
 
-  if((odrv16_user_data.received_feedback == true && odrv19_user_data.received_feedback == true) && (time_ns_now - time_ns_old > 1000000000/1000)){
+  if((odrv16_user_data.received_feedback == true && odrv19_user_data.received_feedback == true) && (time_ns_now - time_ns_old > 1000000000/1000)){ //do 1000hz
 odomUpdate();
 RCSOFTCHECK(rcl_publish(&Odompublisher, &odom_msg, NULL));
 }
   // RCSOFTCHECK(rcl_publish(&TFpublisher, &tf_msg, NULL));
-  // RCSOFTCHECK(rcl_publish(&LeftWheelPublisher, &lwpos, NULL));
-  // RCSOFTCHECK(rcl_publish(&RightWheelPublisher, &rwpos, NULL));
+  RCSOFTCHECK(rcl_publish(&LeftWheelPublisher, &lwpos, NULL));
+  RCSOFTCHECK(rcl_publish(&RightWheelPublisher, &rwpos, NULL));
 }
 
 void setup()
