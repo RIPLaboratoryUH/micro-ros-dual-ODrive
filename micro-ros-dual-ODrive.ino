@@ -313,19 +313,29 @@ Get_Encoder_Estimates_msg_t encoderFeedback19;
 
 //generates a quaternion from euler angles
 // we are only concerned with the z axis rotation, which is q
-const void euler_to_quat(float x, float y, float z, double* q) {
-    float c1 = cos((y*3.14/180.0)/2);
-    float c2 = cos((z*3.14/180.0)/2);
-    float c3 = cos((x*3.14/180.0)/2);
+// const void euler_to_quat(float x, float y, float z, double* q) {
+//     float c1 = cos((y*3.14/180.0)/2);
+//     float c2 = cos((z*3.14/180.0)/2);
+//     float c3 = cos((x*3.14/180.0)/2);
 
-    float s1 = sin((y*3.14/180.0)/2);
-    float s2 = sin((z*3.14/180.0)/2);
-    float s3 = sin((x*3.14/180.0)/2);
+//     float s1 = sin((y*3.14/180.0)/2);
+//     float s2 = sin((z*3.14/180.0)/2);
+//     float s3 = sin((x*3.14/180.0)/2);
 
-    q[0] = c1 * c2 * c3 - s1 * s2 * s3;
-    q[1] = s1 * s2 * c3 + c1 * c2 * s3;
-    q[2] = s1 * c2 * c3 + c1 * s2 * s3;
-    q[3] = c1 * s2 * c3 - s1 * c2 * s3;
+//     q[0] = c1 * c2 * c3 - s1 * s2 * s3;
+//     q[1] = s1 * s2 * c3 + c1 * c2 * s3;
+//     q[2] = s1 * c2 * c3 + c1 * s2 * s3;
+//     q[3] = c1 * s2 * c3 - s1 * c2 * s3;
+// }
+
+const void euler_to_quat(float roll, float pitch, float yaw, double* q) {
+    float cy = cos(yaw * 0.5);
+    float sy = sin(yaw * 0.5);
+
+    q[0] = cy;
+    q[1] = 0;
+    q[2] = 0;
+    q[3] = sy;
 }
 
 
