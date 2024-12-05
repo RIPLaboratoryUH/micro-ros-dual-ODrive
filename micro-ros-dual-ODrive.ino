@@ -61,9 +61,9 @@ rosidl_runtime_c__String odom_str = micro_ros_string_utilities_init(str);
 const char *str1 = "base_link";
 rosidl_runtime_c__String base_str = micro_ros_string_utilities_init(str1);
 
-#define WHEELRAD .05f
-#define WHEELSEP .62f
-#define GEARRATIO 11.1111f
+#define WHEELRAD .05
+#define WHEELSEP .48
+#define GEARRATIO 11.1111
 #define LED_PIN 13 // This is for our error loop
 
 // These are part of the error loop
@@ -313,21 +313,19 @@ Get_Encoder_Estimates_msg_t encoderFeedback19;
 
 //generates a quaternion from euler angles
 // we are only concerned with the z axis rotation, which is q
-double euler_to_quat(float x, float y, float z, double* q) {
-    
-    double c1 = cos((y*3.14/180.0)/2);
-    double c2 = cos((z*3.14/180.0)/2);
-    double c3 = cos((x*3.14/180.0)/2);
+const void euler_to_quat(float x, float y, float z, double* q) {
+    float c1 = cos((y*3.14/180.0)/2);
+    float c2 = cos((z*3.14/180.0)/2);
+    float c3 = cos((x*3.14/180.0)/2);
 
-    double s1 = sin((y*3.14/180.0)/2);
-    double s2 = sin((z*3.14/180.0)/2);
-    double s3 = sin((x*3.14/180.0)/2);
+    float s1 = sin((y*3.14/180.0)/2);
+    float s2 = sin((z*3.14/180.0)/2);
+    float s3 = sin((x*3.14/180.0)/2);
 
-    q[0] = 1;
+    q[0] = c1 * c2 * c3 - s1 * s2 * s3;
     q[1] = s1 * s2 * c3 + c1 * c2 * s3;
     q[2] = s1 * c2 * c3 + c1 * s2 * s3;
     q[3] = c1 * s2 * c3 - s1 * c2 * s3;
-    return c1 * s2 * c3 - s1 * c2 * s3;
 }
 
 
@@ -351,11 +349,7 @@ bool first = true;
 
 
 void odomUpdate(){ 
-
-
-
-
-if (first){
+if (first == true){
   x_pos = 0;
   y_pos = 0;
   theta_pos = 0;
@@ -365,15 +359,33 @@ if (first){
   //send some command to odrive that resets pos of encoders to 0
   odrv16_user_data.last_feedback.Pos_Estimate = 0;
   odrv19_user_data.last_feedback.Pos_Estimate = 0;
+   // fill in the message
+  odom_msg.header.stamp.sec = 0;
+  odom_msg.header.stamp.nanosec = 0;
+  odom_msg.header.frame_id = odom_str;
+  odom_msg.child_frame_id = base_str;
+  odom_msg.pose.pose.position.x = 0;
+  odom_msg.pose.pose.position.y = 0;
+  odom_msg.pose.pose.position.z = 0;
+
+  odom_msg.pose.pose.orientation.x = 0;
+  odom_msg.pose.pose.orientation.y = 0;
+  odom_msg.pose.pose.orientation.z =0;
+  odom_msg.pose.pose.orientation.w =1;
+
+  odom_msg.twist.twist.linear.x = 0;
+  odom_msg.twist.twist.linear.y = 0;
+  odom_msg.twist.twist.linear.z = 0;
+  odom_msg.twist.twist.angular.z = 0;
   first = false;
-}
+}else{ // regular update
   encoderFeedback16 = odrv16_user_data.last_feedback;
   encoderFeedback19 = odrv19_user_data.last_feedback;
    lwvel = encoderFeedback16.Vel_Estimate; 
    rwvel = encoderFeedback19.Vel_Estimate;
    lwpos = encoderFeedback16.Pos_Estimate;
     rwpos = encoderFeedback19.Pos_Estimate;
-
+rwpos = rwpos * -1;
   //  if (lwvel < 0.0001){
   //    lwvel = 0;
   //  }
@@ -390,10 +402,20 @@ if (first){
 // if (angvel < 0.001){
 //   angvel = 0;
 // }
-lwpos = lwpos * WHEELRAD * GEARRATIO * 2 * 3.14;
-rwpos = rwpos * WHEELRAD * GEARRATIO * 2 * 3.14; 
+lwpos = (lwpos/GEARRATIO) * WHEELRAD * 2 * 3.14;
+
+rwpos = (rwpos/GEARRATIO) * WHEELRAD * 2 * 3.14;
+//maybe switch, so delta is taken before conversion to radians
 delta_lwpos = lwpos - lwpos_prev;
 delta_rwpos = rwpos - rwpos_prev;
+
+// //throw out noise
+// if(abs(delta_lwpos)<.001){
+//   delta_lwpos = 0;
+// }
+// if(abs(delta_rwpos)<.001){
+//   delta_rwpos = 0;
+// }
 
 Davg = (delta_lwpos+delta_rwpos)/2;
 Dth = (delta_lwpos-delta_rwpos)/WHEELSEP;
@@ -401,12 +423,7 @@ x= Davg * cos(theta_pos + Dth/2);
 y = Davg * sin(theta_pos +Dth/2);
 
 theta_pos += Dth;
-if (theta_pos > 3.14){
-  theta_pos = theta_pos - (2*3.14);
-}
-if (theta_pos < -3.14){
-  theta_pos = theta_pos + (2*3.14);
-}
+theta_pos = atan2(sin(theta_pos), cos(theta_pos));
 
   // delta_t = (time_ns_now - time_ns_old) / 1000000000; // convert to seconds
   // delta_s = linvel * delta_t; // assume no accel
@@ -459,7 +476,7 @@ euler_to_quat(0, 0, theta_pos, q);
   lwpos_prev = lwpos;
   rwpos_prev = rwpos;
 }
-
+}
 
 /*end odom data generation*/
 
@@ -483,7 +500,7 @@ void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
  time_ns_now = rmw_uros_epoch_nanos();
   }
 
-  if((odrv16_user_data.received_feedback == true && odrv19_user_data.received_feedback == true) && (time_ns_now - time_ns_old > 1000000000/1000)){ //do 1000hz
+  if((odrv16_user_data.received_feedback == true && odrv19_user_data.received_feedback == true) && (time_ns_now - time_ns_old > 1000000000/100)){ //do 100hz
 odomUpdate();
 RCSOFTCHECK(rcl_publish(&Odompublisher, &odom_msg, NULL));
 }
