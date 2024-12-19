@@ -49,10 +49,11 @@ rcl_clock_t clock;
 float time_now, time_old = 0.0;
 
 rcl_timer_t timer; // If we want to run sensor updates at different intervals, we create more than one timer
+//these msg are used to publish data
 sensor_msgs__msg__JointState msg;
-
 nav_msgs__msg__Odometry odom_msg;
 // tf2_msgs__msg__TFMessage tf_msg;
+
 
 // this allows for frames to be specified in msgs, as they ask for a specific type. see below
 //https://docs.vulcanexus.org/en/iron/rst/microros_documentation/user_api/user_api_utilities.html
@@ -64,9 +65,9 @@ rosidl_runtime_c__String base_str = micro_ros_string_utilities_init(str1);
 #define WHEELRAD .05
 #define WHEELSEP .48
 #define GEARRATIO 11.1111
-#define LED_PIN 13 // This is for our error loop
+#define LED_PIN 13 // built in led
 
-// These are part of the error loop
+// This is an error function that will blink the LED if something goes wrong
 #define RCCHECK(fn)              \
   {                              \
     rcl_ret_t temp_rc = fn;      \
@@ -88,6 +89,7 @@ rosidl_runtime_c__String base_str = micro_ros_string_utilities_init(str1);
 
 
 // These states are used to help start the robot without physically disconnecting it
+
 bool micro_ros_init_successful;
 enum states
 {
@@ -328,15 +330,31 @@ Get_Encoder_Estimates_msg_t encoderFeedback19;
 //     q[3] = c1 * s2 * c3 - s1 * c2 * s3;
 // }
 
+// const void euler_to_quat(float roll, float pitch, float yaw, double* q) {
+//     float cy = cos(yaw * 0.5);
+//     float sy = sin(yaw * 0.5);
+
+//     q[0] = cy;
+//     q[1] = 0;
+//     q[2] = 0;
+//     q[3] = sy;
+// }
+
 const void euler_to_quat(float roll, float pitch, float yaw, double* q) {
+    float cr = cos(roll * 0.5);
+    float sr = sin(roll * 0.5);
+    float cp = cos(pitch * 0.5);
+    float sp = sin(pitch * 0.5);
     float cy = cos(yaw * 0.5);
     float sy = sin(yaw * 0.5);
 
-    q[0] = cy;
-    q[1] = 0;
-    q[2] = 0;
-    q[3] = sy;
+    q[0] = cr * cp * cy + sr * sp * sy;
+    q[1] = sr * cp * cy - cr * sp * sy;
+    q[2] = cr * sp * cy + sr * cp * sy;
+    q[3] = cr * cp * sy - sr * sp * cy;
+
 }
+
 
 
 
@@ -353,6 +371,7 @@ float generateAngularVel(float lwvel, float rwvel)
 {
   return GEARRATIO * (WHEELRAD / 2) * ((wheelc1 * lwvel - wheelc2 * rwvel) / WHEELSEP);
 }
+
 int64_t time_ns_now;
 int64_t time_ns_old;
 bool first = true;
@@ -406,35 +425,41 @@ rwpos = rwpos * -1;
   linvel = generateLinearVel(lwvel, rwvel);
   angvel = generateAngularVel(lwvel, rwvel);
 
-// if (linvel < 0.001){
-//   linvel = 0;
-// }
-// if (angvel < 0.001){
-//   angvel = 0;
-// }
+if abs((linvel < 0.001)){
+  linvel = 0;
+}
+if abs((angvel < 0.001)){
+  angvel = 0;
+}
+//
 lwpos = (lwpos/GEARRATIO) * WHEELRAD * 2 * 3.14;
-
 rwpos = (rwpos/GEARRATIO) * WHEELRAD * 2 * 3.14;
 //maybe switch, so delta is taken before conversion to radians
 delta_lwpos = lwpos - lwpos_prev;
 delta_rwpos = rwpos - rwpos_prev;
 
-// //throw out noise
-// if(abs(delta_lwpos)<.001){
-//   delta_lwpos = 0;
-// }
-// if(abs(delta_rwpos)<.001){
-//   delta_rwpos = 0;
-// }
+//throw out noise
+if(abs(delta_lwpos)<0.001){
+  delta_lwpos = 0;
+}
+if(abs(delta_rwpos)<0.001){
+  delta_rwpos = 0;
+}
 
 Davg = (delta_lwpos+delta_rwpos)/2;
 Dth = (delta_lwpos-delta_rwpos)/WHEELSEP;
 x= Davg * cos(theta_pos + Dth/2);
 y = Davg * sin(theta_pos +Dth/2);
-
 theta_pos += Dth;
+// does not work if you pass in y,x
 theta_pos = atan2(sin(theta_pos), cos(theta_pos));
 
+// if (theta_pos > 3.14){
+//   theta_pos = theta_pos - (2*3.14);
+// }
+// if (theta_pos < -3.14){
+//   theta_pos = theta_pos + (2*3.14);
+// }
   // delta_t = (time_ns_now - time_ns_old) / 1000000000; // convert to seconds
   // delta_s = linvel * delta_t; // assume no accel
   // delta_theta = angvel * delta_t; // assume no accel
@@ -446,7 +471,8 @@ theta_pos = atan2(sin(theta_pos), cos(theta_pos));
   y_pos += y;
   // theta_pos += delta_theta;
 double q[4];
-euler_to_quat(0, 0, theta_pos, q);
+//i put a negative here as the rotation was not matching in rviz 
+euler_to_quat(0, 0, -theta_pos, q);
 
 
   // fill in the message
@@ -478,7 +504,6 @@ euler_to_quat(0, 0, theta_pos, q);
   //   tf_msg.transforms.data[0].transform.translation.y = y_pos;
   //   tf_msg.transforms.data[0].transform.translation.z = 0;
   //   tf_msg.transforms.data[0].transform.rotation.z = sin(theta_pos / 2);
-    
 
 
 
