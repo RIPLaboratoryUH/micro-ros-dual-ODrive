@@ -2,7 +2,6 @@
 //--Start Includes--//
 
 // Needed for micro_ros
-
 #include <micro_ros_arduino.h>
 #include <micro_ros_utilities/type_utilities.h>
 #include <micro_ros_utilities/string_utilities.h>
@@ -17,9 +16,6 @@
 #include <std_msgs/msg/string.h>
 #include <std_msgs/msg/float32.h>
 
-
-
-
 // This is needed for the multiplexor
 #include <Wire.h>
 
@@ -29,6 +25,7 @@
 
 // See https://github.com/tonton81/FlexCAN_T4
 // clone https://github.com/tonton81/FlexCAN_T4.git into /src
+// make changes as directed in lucas' micro-ros docs
 #include <FlexCAN_T4.h>
 #include "ODriveFlexCAN.hpp"
 
@@ -38,7 +35,8 @@
 static micro_ros_utilities_memory_conf_t conf = {0};
 rclc_executor_t executor;
 rcl_subscription_t subscriber;
-rcl_publisher_t Odompublisher;
+rcl_subscription_t OdomFlagSubscriber;
+rcl_publisher_t OdomPublisher;
 // rcl_publisher_t TFpublisher;
 rcl_publisher_t LeftWheelPublisher;
 rcl_publisher_t RightWheelPublisher;
@@ -49,14 +47,14 @@ rcl_clock_t clock;
 float time_now, time_old = 0.0;
 
 rcl_timer_t timer; // If we want to run sensor updates at different intervals, we create more than one timer
-//these msg are used to publish data
+// these msg are used to publish data
 sensor_msgs__msg__JointState msg;
 nav_msgs__msg__Odometry odom_msg;
+std_msgs__msg__Float32 odom_flag_msg;
 // tf2_msgs__msg__TFMessage tf_msg;
 
-
 // this allows for frames to be specified in msgs, as they ask for a specific type. see below
-//https://docs.vulcanexus.org/en/iron/rst/microros_documentation/user_api/user_api_utilities.html
+// https://docs.vulcanexus.org/en/iron/rst/microros_documentation/user_api/user_api_utilities.html
 const char *str = "odom";
 rosidl_runtime_c__String odom_str = micro_ros_string_utilities_init(str);
 const char *str1 = "base_link";
@@ -84,10 +82,6 @@ rosidl_runtime_c__String base_str = micro_ros_string_utilities_init(str1);
     }                            \
   }
 
-
-
-
-
 // These states are used to help start the robot without physically disconnecting it
 
 bool micro_ros_init_successful;
@@ -101,7 +95,6 @@ enum states
 
 bool create_entities()
 {
-
   /*Creates all ROS Entities*/
   allocator = rcl_get_default_allocator();
   // create init_options
@@ -116,29 +109,34 @@ bool create_entities()
       &node,
       ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, JointState),
       "/joint_states"));
+  RCCHECK(rclc_subscription_init_default(
+      &OdomFlagSubscriber,
+      &node,
+      ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32),
+      "/reset_odom"));
   RCCHECK(rcl_ros_clock_init(&clock, &allocator));
   RCCHECK(rclc_publisher_init_default(
-      &Odompublisher,
+      &OdomPublisher,
       &node,
       ROSIDL_GET_MSG_TYPE_SUPPORT(nav_msgs, msg, Odometry),
       "/diff_drive_controller/odom"));
-      RCCHECK(rclc_publisher_init_default(
+  RCCHECK(rclc_publisher_init_default(
       &LeftWheelPublisher,
       &node,
       ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32),
       "/left_wheel_pos"));
 
-      RCCHECK(rclc_publisher_init_default(
+  RCCHECK(rclc_publisher_init_default(
       &RightWheelPublisher,
       &node,
       ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32),
       "/right_wheel_pos"));
 
-// RCCHECK(rclc_publisher_init_default(
-//       &TFpublisher,
-//       &node,
-//       ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
-//       "/tf"));
+  // RCCHECK(rclc_publisher_init_default(
+  //       &TFpublisher,
+  //       &node,
+  //       ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
+  //       "/tf"));
 
   const unsigned int timer_timeout = 10;
   RCCHECK(rclc_timer_init_default(
@@ -156,10 +154,11 @@ bool create_entities()
   //     ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
   //     &tf_msg,
   //     conf);
-    
+
   // create executor
-  RCCHECK(rclc_executor_init(&executor, &support.context, 7, &allocator));
+  RCCHECK(rclc_executor_init(&executor, &support.context, 8, &allocator));
   RCCHECK(rclc_executor_add_subscription(&executor, &subscriber, &msg, &subscription_callback, ON_NEW_DATA));
+  RCCHECK(rclc_executor_add_subscription(&executor, &OdomFlagSubscriber, &odom_flag_msg, &flag_callback, ON_NEW_DATA));
   RCCHECK(rclc_executor_add_timer(&executor, &timer));
   return true;
 }
@@ -167,12 +166,12 @@ void destroy_entities()
 {
   rmw_context_t *rmw_context = rcl_context_get_rmw_context(&support.context);
   (void)rmw_uros_set_context_entity_destroy_session_timeout(rmw_context, 0);
-  rcl_publisher_fini(&Odompublisher, &node);
+  rcl_publisher_fini(&OdomPublisher, &node);
   // rcl_publisher_fini(&TFpublisher, &node);
   rcl_subscription_fini(&subscriber, &node);
   rcl_publisher_fini(&LeftWheelPublisher, &node);
   rcl_publisher_fini(&RightWheelPublisher, &node);
-
+  rcl_subscription_fini(&OdomFlagSubscriber, &node);
   rcl_timer_fini(&timer);
   rcl_clock_fini(&clock);
   rclc_executor_fini(&executor);
@@ -265,7 +264,6 @@ void setupODrive()
     odrv16.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
     odrv19.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
 
-
     for (int i = 0; i < 15; ++i)
     {
       delay(10);
@@ -312,13 +310,12 @@ float Dth;
 Get_Encoder_Estimates_msg_t encoderFeedback16;
 Get_Encoder_Estimates_msg_t encoderFeedback19;
 
-
-//generates a quaternion from euler angles
-// we are only concerned with the z axis rotation, which is q
-// const void euler_to_quat(float x, float y, float z, double* q) {
-//     float c1 = cos((y*3.14/180.0)/2);
-//     float c2 = cos((z*3.14/180.0)/2);
-//     float c3 = cos((x*3.14/180.0)/2);
+// generates a quaternion from euler angles
+//  we are only concerned with the z axis rotation, which is q
+//  const void euler_to_quat(float x, float y, float z, double* q) {
+//      float c1 = cos((y*3.14/180.0)/2);
+//      float c2 = cos((z*3.14/180.0)/2);
+//      float c3 = cos((x*3.14/180.0)/2);
 
 //     float s1 = sin((y*3.14/180.0)/2);
 //     float s2 = sin((z*3.14/180.0)/2);
@@ -340,23 +337,20 @@ Get_Encoder_Estimates_msg_t encoderFeedback19;
 //     q[3] = sy;
 // }
 
-const void euler_to_quat(float roll, float pitch, float yaw, double* q) {
-    float cr = cos(roll * 0.5);
-    float sr = sin(roll * 0.5);
-    float cp = cos(pitch * 0.5);
-    float sp = sin(pitch * 0.5);
-    float cy = cos(yaw * 0.5);
-    float sy = sin(yaw * 0.5);
+const void euler_to_quat(float roll, float pitch, float yaw, double *q)
+{
+  float cr = cos(roll * 0.5);
+  float sr = sin(roll * 0.5);
+  float cp = cos(pitch * 0.5);
+  float sp = sin(pitch * 0.5);
+  float cy = cos(yaw * 0.5);
+  float sy = sin(yaw * 0.5);
 
-    q[0] = cr * cp * cy + sr * sp * sy;
-    q[1] = sr * cp * cy - cr * sp * sy;
-    q[2] = cr * sp * cy + sr * cp * sy;
-    q[3] = cr * cp * sy - sr * sp * cy;
-
+  q[0] = cr * cp * cy + sr * sp * sy;
+  q[1] = sr * cp * cy - cr * sp * sy;
+  q[2] = cr * sp * cy + sr * cp * sy;
+  q[3] = cr * cp * sy - sr * sp * cy;
 }
-
-
-
 
 // inputs actual velocity for left and right wheel, from odrive data
 // outputs linear vel in x dir
@@ -376,141 +370,144 @@ int64_t time_ns_now;
 int64_t time_ns_old;
 bool first = true;
 
+void odomUpdate()
+{
+  if (first == true)
+  {
+    x_pos = 0;
+    y_pos = 0;
+    theta_pos = 0;
+    lwpos = 0;
+    rwpos = 0;
 
-void odomUpdate(){ 
-if (first == true){
-  x_pos = 0;
-  y_pos = 0;
-  theta_pos = 0;
-  lwpos = 0;
-  rwpos = 0;
-  
-  //send some command to odrive that resets pos of encoders to 0
-  odrv16_user_data.last_feedback.Pos_Estimate = 0;
-  odrv19_user_data.last_feedback.Pos_Estimate = 0;
-   // fill in the message
-  odom_msg.header.stamp.sec = 0;
-  odom_msg.header.stamp.nanosec = 0;
-  odom_msg.header.frame_id = odom_str;
-  odom_msg.child_frame_id = base_str;
-  odom_msg.pose.pose.position.x = 0;
-  odom_msg.pose.pose.position.y = 0;
-  odom_msg.pose.pose.position.z = 0;
+    // send some command to odrive that resets pos of encoders to 0
+    odrv16_user_data.last_feedback.Pos_Estimate = 0;
+    odrv19_user_data.last_feedback.Pos_Estimate = 0;
+    // fill in the message
+    odom_msg.header.stamp.sec = 0;
+    odom_msg.header.stamp.nanosec = 0;
+    odom_msg.header.frame_id = odom_str;
+    odom_msg.child_frame_id = base_str;
+    odom_msg.pose.pose.position.x = 0;
+    odom_msg.pose.pose.position.y = 0;
+    odom_msg.pose.pose.position.z = 0;
 
-  odom_msg.pose.pose.orientation.x = 0;
-  odom_msg.pose.pose.orientation.y = 0;
-  odom_msg.pose.pose.orientation.z =0;
-  odom_msg.pose.pose.orientation.w =1;
+    odom_msg.pose.pose.orientation.x = 0;
+    odom_msg.pose.pose.orientation.y = 0;
+    odom_msg.pose.pose.orientation.z = 0;
+    odom_msg.pose.pose.orientation.w = 1;
 
-  odom_msg.twist.twist.linear.x = 0;
-  odom_msg.twist.twist.linear.y = 0;
-  odom_msg.twist.twist.linear.z = 0;
-  odom_msg.twist.twist.angular.z = 0;
-  first = false;
-}else{ // regular update
-  encoderFeedback16 = odrv16_user_data.last_feedback;
-  encoderFeedback19 = odrv19_user_data.last_feedback;
-   lwvel = encoderFeedback16.Vel_Estimate; 
-   rwvel = encoderFeedback19.Vel_Estimate;
-   lwpos = encoderFeedback16.Pos_Estimate;
+    odom_msg.twist.twist.linear.x = 0;
+    odom_msg.twist.twist.linear.y = 0;
+    odom_msg.twist.twist.linear.z = 0;
+    odom_msg.twist.twist.angular.z = 0;
+    first = false;
+  }
+  else
+  { // regular update
+    encoderFeedback16 = odrv16_user_data.last_feedback;
+    encoderFeedback19 = odrv19_user_data.last_feedback;
+    lwvel = encoderFeedback16.Vel_Estimate;
+    rwvel = encoderFeedback19.Vel_Estimate;
+    lwpos = encoderFeedback16.Pos_Estimate;
     rwpos = encoderFeedback19.Pos_Estimate;
-rwpos = rwpos * -1;
-  //  if (lwvel < 0.0001){
-  //    lwvel = 0;
-  //  }
-  //  if (rwvel < 0.0001){
-  //    rwvel = 0;
-  //  }
+    rwpos = rwpos * -1;
+    //  if (lwvel < 0.0001){
+    //    lwvel = 0;
+    //  }
+    //  if (rwvel < 0.0001){
+    //    rwvel = 0;
+    //  }
 
-  linvel = generateLinearVel(lwvel, rwvel);
-  angvel = generateAngularVel(lwvel, rwvel);
+    linvel = generateLinearVel(lwvel, rwvel);
+    angvel = generateAngularVel(lwvel, rwvel);
 
-if abs((linvel < 0.001)){
-  linvel = 0;
-}
-if abs((angvel < 0.001)){
-  angvel = 0;
-}
-//
-lwpos = (lwpos/GEARRATIO) * WHEELRAD * 2 * 3.14;
-rwpos = (rwpos/GEARRATIO) * WHEELRAD * 2 * 3.14;
-//maybe switch, so delta is taken before conversion to radians
-delta_lwpos = lwpos - lwpos_prev;
-delta_rwpos = rwpos - rwpos_prev;
+    if (abs((linvel < 0.001)))
+    {
+      linvel = 0;
+    }
+    if (abs((angvel < 0.001)))
+    {
+      angvel = 0;
+    }
 
-//throw out noise
-if(abs(delta_lwpos)<0.001){
-  delta_lwpos = 0;
-}
-if(abs(delta_rwpos)<0.001){
-  delta_rwpos = 0;
-}
+    lwpos = (lwpos / GEARRATIO) * WHEELRAD * 2 * 3.14;
+    rwpos = (rwpos / GEARRATIO) * WHEELRAD * 2 * 3.14;
+    // maybe switch, so delta is taken before conversion to radians
+    delta_lwpos = lwpos - lwpos_prev;
+    delta_rwpos = rwpos - rwpos_prev;
 
-Davg = (delta_lwpos+delta_rwpos)/2;
-Dth = (delta_lwpos-delta_rwpos)/WHEELSEP;
-x= Davg * cos(theta_pos + Dth/2);
-y = Davg * sin(theta_pos +Dth/2);
-theta_pos += Dth;
-// does not work if you pass in y,x
-theta_pos = atan2(sin(theta_pos), cos(theta_pos));
+    // // throw out noise
+    // if (abs(delta_lwpos) < 0.001)
+    // {
+    //   delta_lwpos = 0;
+    // }
+    // if (abs(delta_rwpos) < 0.001)
+    // {
+    //   delta_rwpos = 0;
+    // }
 
-// if (theta_pos > 3.14){
-//   theta_pos = theta_pos - (2*3.14);
-// }
-// if (theta_pos < -3.14){
-//   theta_pos = theta_pos + (2*3.14);
-// }
-  // delta_t = (time_ns_now - time_ns_old) / 1000000000; // convert to seconds
-  // delta_s = linvel * delta_t; // assume no accel
-  // delta_theta = angvel * delta_t; // assume no accel
-  // x = delta_s * cos(theta_pos);
-  // y = delta_s * sin(theta_pos);
+    Davg = (delta_lwpos + delta_rwpos) / 2;
+    Dth = (delta_lwpos - delta_rwpos) / WHEELSEP;
+    x = Davg * cos(theta_pos + Dth / 2);
+    y = Davg * sin(theta_pos + Dth / 2);
+    theta_pos += Dth;
+    // does not work if you pass in y,x
+    theta_pos = atan2(sin(theta_pos), cos(theta_pos));
 
+    // if (theta_pos > 3.14){
+    //   theta_pos = theta_pos - (2*3.14);
+    // }
+    // if (theta_pos < -3.14){
+    //   theta_pos = theta_pos + (2*3.14);
+    // }
+    // delta_t = (time_ns_now - time_ns_old) / 1000000000; // convert to seconds
+    // delta_s = linvel * delta_t; // assume no accel
+    // delta_theta = angvel * delta_t; // assume no accel
+    // x = delta_s * cos(theta_pos);
+    // y = delta_s * sin(theta_pos);
 
-  x_pos += x;
-  y_pos += y;
-  // theta_pos += delta_theta;
-double q[4];
-//i put a negative here as the rotation was not matching in rviz 
-euler_to_quat(0, 0, -theta_pos, q);
+    x_pos += x;
+    y_pos += y;
+    // theta_pos += delta_theta;
+    double q[4];
+    // i put a negative here as the rotation was not matching in rviz
+    euler_to_quat(0, 0, -theta_pos, q);
 
+    // fill in the message
+    odom_msg.header.stamp.sec = time_ns_now / 1000000000;
+    odom_msg.header.stamp.nanosec = time_ns_now % 1000000000;
+    odom_msg.header.frame_id = odom_str;
+    odom_msg.child_frame_id = base_str;
+    odom_msg.pose.pose.position.x = x_pos;
+    odom_msg.pose.pose.position.y = y_pos;
+    odom_msg.pose.pose.position.z = 0;
 
-  // fill in the message
-  odom_msg.header.stamp.sec = time_ns_now / 1000000000;
-  odom_msg.header.stamp.nanosec = time_ns_now % 1000000000;
-  odom_msg.header.frame_id = odom_str;
-  odom_msg.child_frame_id = base_str;
-  odom_msg.pose.pose.position.x = x_pos;
-  odom_msg.pose.pose.position.y = y_pos;
-  odom_msg.pose.pose.position.z = 0;
+    odom_msg.pose.pose.orientation.x = (double)q[1];
+    odom_msg.pose.pose.orientation.y = (double)q[2];
+    odom_msg.pose.pose.orientation.z = (double)q[3];
+    odom_msg.pose.pose.orientation.w = (double)q[0];
 
-  odom_msg.pose.pose.orientation.x = (double)q[1];
-  odom_msg.pose.pose.orientation.y = (double)q[2];
-  odom_msg.pose.pose.orientation.z =(double) q[3];
-  odom_msg.pose.pose.orientation.w =(double) q[0];
+    odom_msg.twist.twist.linear.x = linvel;
+    odom_msg.twist.twist.linear.y = 0;
+    odom_msg.twist.twist.linear.z = 0;
+    odom_msg.twist.twist.angular.z = angvel;
 
-  odom_msg.twist.twist.linear.x = linvel;
-  odom_msg.twist.twist.linear.y = 0;
-  odom_msg.twist.twist.linear.z = 0;
-  odom_msg.twist.twist.angular.z = angvel;
+    // //tf publisher
 
-// //tf publisher
+    // tf_msg.transforms.data[0].header.frame_id = odom_str;
+    // tf_msg.transforms.data[0].child_frame_id = base_str;
+    //   tf_msg.transforms.data[0].header.stamp.sec = time_ns_now / 1000000000;
+    //   // tf_msg.transforms.data[0].header.stamp.nanosec = time_ns_now;
+    //   tf_msg.transforms.data[0].transform.translation.x = x_pos;
+    //   tf_msg.transforms.data[0].transform.translation.y = y_pos;
+    //   tf_msg.transforms.data[0].transform.translation.z = 0;
+    //   tf_msg.transforms.data[0].transform.rotation.z = sin(theta_pos / 2);
 
-  // tf_msg.transforms.data[0].header.frame_id = odom_str;
-  // tf_msg.transforms.data[0].child_frame_id = base_str;
-  //   tf_msg.transforms.data[0].header.stamp.sec = time_ns_now / 1000000000;
-  //   // tf_msg.transforms.data[0].header.stamp.nanosec = time_ns_now;
-  //   tf_msg.transforms.data[0].transform.translation.x = x_pos;
-  //   tf_msg.transforms.data[0].transform.translation.y = y_pos;
-  //   tf_msg.transforms.data[0].transform.translation.z = 0;
-  //   tf_msg.transforms.data[0].transform.rotation.z = sin(theta_pos / 2);
-
-
-
-  time_ns_old = time_ns_now;
-  lwpos_prev = lwpos;
-  rwpos_prev = rwpos;
-}
+    time_ns_old = time_ns_now;
+    lwpos_prev = lwpos;
+    rwpos_prev = rwpos;
+  }
 }
 
 /*end odom data generation*/
@@ -525,20 +522,32 @@ void subscription_callback(const void *msgin)
   odrv19.setVelocity(
       -vel2);
 }
+void flag_callback(const void *msgin)
+{
+  const std_msgs__msg__Float32 *msg = (const std_msgs__msg__Float32 *)msgin;
+  if (msg->data == 1)
+  {
+    first = true;
+    odrv16.clearErrors();
+    odrv19.clearErrors();
+  }
+}
+
 // this is the publisher timer
 // every x seconds, we will generate and publish the odometry data
 void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
 {
-    rmw_uros_sync_session(100);
+  rmw_uros_sync_session(100);
   if (rmw_uros_epoch_synchronized())
   {
- time_ns_now = rmw_uros_epoch_nanos();
+    time_ns_now = rmw_uros_epoch_nanos();
   }
-
-  if((odrv16_user_data.received_feedback == true && odrv19_user_data.received_feedback == true) && (time_ns_now - time_ns_old > 1000000000/100)){ //do 100hz
-odomUpdate();
-RCSOFTCHECK(rcl_publish(&Odompublisher, &odom_msg, NULL));
-}
+  // if there is new data from odrive and it has been 10ms since last update
+  if ((odrv16_user_data.received_feedback == true && odrv19_user_data.received_feedback == true) && (time_ns_now - time_ns_old > 1000000000 / 100))
+  { // do 100hz
+    odomUpdate();
+    RCSOFTCHECK(rcl_publish(&OdomPublisher, &odom_msg, NULL));
+  }
   // RCSOFTCHECK(rcl_publish(&TFpublisher, &tf_msg, NULL));
   RCSOFTCHECK(rcl_publish(&LeftWheelPublisher, &lwpos, NULL));
   RCSOFTCHECK(rcl_publish(&RightWheelPublisher, &rwpos, NULL));
@@ -560,12 +569,12 @@ void setup()
   set_microros_transports();
   // Synchronize time with the agent
   float timeout_ms = 100;
-   rmw_uros_sync_session(timeout_ms);
+  rmw_uros_sync_session(timeout_ms);
 
   if (rmw_uros_epoch_synchronized())
   {
     // Get time in milliseconds or nanoseconds
-    
+
     time_ns_now = rmw_uros_epoch_nanos();
     time_ns_old = time_ns_now;
   }
@@ -584,7 +593,6 @@ void setup()
   odrv16.setControllerMode(2, 1);
   odrv19.setControllerMode(2, 1);
   setupODrive();
-
 }
 
 void loop()
