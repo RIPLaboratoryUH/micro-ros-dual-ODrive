@@ -351,7 +351,6 @@ const void euler_to_quat(float roll, float pitch, float yaw, double *q)
   q[2] = cr * sp * cy + sr * cp * sy;
   q[3] = cr * cp * sy - sr * sp * cy;
 }
-
 // inputs actual velocity for left and right wheel, from odrive data
 // outputs linear vel in x dir
 float generateLinearVel(float lwvel, float rwvel)
@@ -409,7 +408,7 @@ void odomUpdate()
     encoderFeedback19 = odrv19_user_data.last_feedback;
     lwvel = encoderFeedback16.Vel_Estimate;
     rwvel = encoderFeedback19.Vel_Estimate;
-    lwpos = encoderFeedback16.Pos_Estimate;
+    lwpos = encoderFeedback16.Pos_Estimate; // 0 to n where n is #turns, float value. i.e 0.5 is half a turn
     rwpos = encoderFeedback19.Pos_Estimate;
     rwpos = rwpos * -1;
     //  if (lwvel < 0.0001){
@@ -422,14 +421,7 @@ void odomUpdate()
     linvel = generateLinearVel(lwvel, rwvel);
     angvel = generateAngularVel(lwvel, rwvel);
 
-    if (abs((linvel < 0.001)))
-    {
-      linvel = 0;
-    }
-    if (abs((angvel < 0.001)))
-    {
-      angvel = 0;
-    }
+
 
     lwpos = (lwpos / GEARRATIO) * WHEELRAD * 2 * 3.14;
     rwpos = (rwpos / GEARRATIO) * WHEELRAD * 2 * 3.14;
@@ -447,14 +439,40 @@ void odomUpdate()
     //   delta_rwpos = 0;
     // }
 
+
+// Davg = (delta_lwpos + delta_rwpos) / 2;
+// Dth = (delta_lwpos - delta_rwpos) / WHEELSEP;
+// if(Davg !=0){
+//   x = cos(Dth)*Davg;
+//   y = -sin(Dth)*Davg;
+//   x_pos+=(cos(theta_pos)*x - sin(theta_pos)*y);
+//   y_pos+=(sin(theta_pos)*x + cos(theta_pos)*y);
+// }
+// if(Dth !=0){
+//   theta_pos+=Dth;
+//   theta_pos = atan2(sin(theta_pos), cos(theta_pos));
+
+// }
+
+
+//this method has the weird turn thingy
+
     Davg = (delta_lwpos + delta_rwpos) / 2;
-    Dth = (delta_lwpos - delta_rwpos) / WHEELSEP;
-    x = Davg * cos(theta_pos + Dth / 2);
-    y = Davg * sin(theta_pos + Dth / 2);
+    Dth = (delta_rwpos - delta_lwpos) / WHEELSEP; //
+    x = Davg * cos(theta_pos+ (Dth / 2));
+    y = Davg * sin(theta_pos + (Dth / 2));
     theta_pos += Dth;
     // does not work if you pass in y,x
-    theta_pos = atan2(sin(theta_pos), cos(theta_pos));
+    // theta_pos = atan2(sin(theta_pos), cos(theta_pos)); // maybe try comment out 
+    // theta_pos = Myatan2(sin(theta_pos), cos(theta_pos));
+    //my function has same reuslts as built in atan2
 
+
+
+  // if (theta_pos < 0){
+  //   theta_pos = theta_pos + (2*3.14);
+  // }
+  
     // if (theta_pos > 3.14){
     //   theta_pos = theta_pos - (2*3.14);
     // }
@@ -472,7 +490,7 @@ void odomUpdate()
     // theta_pos += delta_theta;
     double q[4];
     // i put a negative here as the rotation was not matching in rviz
-    euler_to_quat(0, 0, -theta_pos, q);
+    euler_to_quat(0, 0, theta_pos, q);
 
     // fill in the message
     odom_msg.header.stamp.sec = time_ns_now / 1000000000;
