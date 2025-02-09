@@ -58,8 +58,10 @@ rcl_publisher_t TFpublisher;
 rcl_publisher_t LeftWheelPublisher;
 rcl_publisher_t RightWheelPublisher;
 rcl_publisher_t motor16Publisher;
+rcl_publisher_t motor19Publisher;
 
 geometry_msgs__msg__Vector3 motor16msg;
+geometry_msgs__msg__Vector3 motor19msg;
 sensor_msgs__msg__JointState msg;
 nav_msgs__msg__Odometry odom_msg;
 tf2_msgs__msg__TFMessage tf_msg;
@@ -109,12 +111,14 @@ void destroy_entities()
 {
   rmw_context_t *rmw_context = rcl_context_get_rmw_context(&support.context);
   (void)rmw_uros_set_context_entity_destroy_session_timeout(rmw_context, 0);
-  rcl_publisher_fini(&Odompublisher, &node);
-  rcl_publisher_fini(&TFpublisher, &node);
+  //rcl_publisher_fini(&Odompublisher, &node);
+  //rcl_publisher_fini(&TFpublisher, &node);
   rcl_subscription_fini(&subscriber, &node);
-  rcl_publisher_fini(&LeftWheelPublisher, &node);
-  rcl_publisher_fini(&RightWheelPublisher, &node);
+  //rcl_publisher_fini(&LeftWheelPublisher, &node);
+  //rcl_publisher_fini(&RightWheelPublisher, &node);
   rcl_publisher_fini(&motor16Publisher, &node);
+  rcl_publisher_fini(&motor19Publisher, &node);
+
 
   rcl_timer_fini(&timer);
   rcl_clock_fini(&clock);
@@ -189,6 +193,7 @@ void onCanMessage(const CanMsg &msg)
 
 bool getPower(Get_Powers_msg_t &msg, uint16_t timeout_ms = 10); //already in can.h
 Get_Powers_msg_t pwrMsg16;
+Get_Powers_msg_t pwrMsg19;
 
 
 
@@ -246,10 +251,12 @@ void odomUpdate(){
   encoderFeedback19 = odrv19_user_data.last_feedback;
 
   odrv16.request(pwrMsg16 , 1);
+  odrv19.request(pwrMsg19 , 1);
+
   
   motor16msg.x = micros();
   
-  if (encoderFeedback16.Vel_Estimate < 0.0001){
+  if (encoderFeedback16.Vel_Estimate < 0.0001 && encoderFeedback16.Vel_Estimate > -0.0001){
     motor16msg.y = 0.0;
     }
   else {
@@ -261,6 +268,22 @@ void odomUpdate(){
     }
   else {
     motor16msg.z = pwrMsg16.Electrical_Power; 
+    }
+
+  motor19msg.x = micros();
+  
+  if (encoderFeedback19.Vel_Estimate < 0.0001 && encoderFeedback19.Vel_Estimate > -0.0001){
+    motor19msg.y = 0.0;
+    }
+  else {
+    motor19msg.y = encoderFeedback19.Vel_Estimate;
+    }
+  
+  if (pwrMsg19.Electrical_Power < 0.0001){
+      motor19msg.z = 0.0;
+    }
+  else {
+    motor19msg.z = pwrMsg19.Electrical_Power; 
     }
 
   odrv16_user_data.received_feedback = false;
@@ -293,11 +316,12 @@ void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
 
   odomUpdate();
   
-  RCSOFTCHECK(rcl_publish(&Odompublisher, &odom_msg, NULL));
-  RCSOFTCHECK(rcl_publish(&TFpublisher, &tf_msg, NULL));
-  RCSOFTCHECK(rcl_publish(&LeftWheelPublisher, &lwpos, NULL));
-  RCSOFTCHECK(rcl_publish(&RightWheelPublisher, &rwpos, NULL));
+  //RCSOFTCHECK(rcl_publish(&Odompublisher, &odom_msg, NULL));
+  //RCSOFTCHECK(rcl_publish(&TFpublisher, &tf_msg, NULL));
+  //RCSOFTCHECK(rcl_publish(&LeftWheelPublisher, &lwpos, NULL));
+  //RCSOFTCHECK(rcl_publish(&RightWheelPublisher, &rwpos, NULL));
   RCSOFTCHECK(rcl_publish(&motor16Publisher, &motor16msg, NULL));
+  RCSOFTCHECK(rcl_publish(&motor19Publisher, &motor19msg, NULL));
 
 }
 
