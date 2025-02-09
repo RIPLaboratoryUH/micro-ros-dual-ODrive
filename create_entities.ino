@@ -21,6 +21,7 @@ bool create_entities()
       "/joint_states"));
   
   //create publishers
+  /*
   RCCHECK(rclc_publisher_init_default(
     &Odompublisher,
     &node,
@@ -39,13 +40,18 @@ bool create_entities()
   RCCHECK(rclc_publisher_init_default(
     &TFpublisher,
     &node,
-    ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),"/tf"));
+    ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),"/tf")); 
+  */
 
   RCCHECK(rclc_publisher_init_default(
     &motor16Publisher,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Vector3),"motor_16_data"));
 
+  RCCHECK(rclc_publisher_init_default(
+      &motor19Publisher,
+      &node,
+      ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Vector3),"motor_19_data"));
 
   //Create timer
   RCCHECK(rclc_timer_init_default(
