@@ -31,8 +31,10 @@ void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
     time_ns_now = rmw_uros_epoch_nanos();
   }
   // if there is new data from odrive and it has been 10ms since last update
-  if ((odrv16_user_data.received_feedback == true && odrv19_user_data.received_feedback == true) && (time_ns_now - time_ns_old > (1000000 / 100))) // try polling more often
+  if ((odrv16_user_data.received_feedback == true && odrv19_user_data.received_feedback == true) && (time_ns_now - time_ns_old > (100000 / 100))) // try polling more often
   { // do 100000hz (i think)
+  //switch led
+    digitalWrite(LED_PIN, !digitalRead(LED_PIN));
     odomUpdate();
     RCSOFTCHECK(rcl_publish(&OdomPublisher, &odom_msg, NULL));
   }

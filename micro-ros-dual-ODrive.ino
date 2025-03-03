@@ -36,7 +36,7 @@ This is the main file. Here we set up our constant definitions and variable decl
 
 
 // start definitions
-#define WHEELRAD .05
+#define WHEELRAD .05715 // given that the wheel diameter is 4.5 inches, the radius is 2.25 inches or 0.05715 meters
 #define WHEELSEP .48
 #define GEARRATIO 11.1111
 #define LED_PIN 13 // built in led
@@ -64,7 +64,7 @@ rclc_support_t support;
 rcl_allocator_t allocator;
 rcl_node_t node;
 rcl_clock_t clock;
-float time_now, time_old = 0.0;
+double time_now, time_old = 0.0;
 
 rcl_timer_t timer;
 // these msg are used to publish data
@@ -142,25 +142,25 @@ ODriveUserData odrv19_user_data;
 
 
 /*odom declarations*/
-float wheelc1 = 1.0;
-float wheelc2 = 1.0;
-float lwvel;
-float rwvel;
-float linvel;
-float angvel;
-float x;
-float y;
-float x_pos;
-float y_pos;
-float theta_pos;
-float lwpos = 0;
-float rwpos = 0;
-float lwpos_prev = 0;
-float rwpos_prev = 0;
-float delta_lwpos;
-float delta_rwpos;
-float Davg;
-float Dth;
+double wheelc1 = 1.0;
+double wheelc2 = 1.0;
+double lwvel;
+double rwvel;
+double linvel;
+double angvel;
+double x;
+double y;
+double x_pos;
+double y_pos;
+double theta_pos;
+double lwpos = 0;
+double rwpos = 0;
+double lwpos_prev = 0;
+double rwpos_prev = 0;
+double delta_lwpos;
+double delta_rwpos;
+double Davg;
+double Dth;
 Get_Encoder_Estimates_msg_t encoderFeedback16;
 Get_Encoder_Estimates_msg_t encoderFeedback19;
 int64_t time_ns_now;
@@ -172,7 +172,6 @@ bool first = true;
 void setup()
 {
   state = WAITING_AGENT;
-
   Wire.begin();
   Serial.begin(115200);
   // Wait for up to 1 seconds for the serial port to be opened on the PC side.
@@ -184,7 +183,7 @@ void setup()
 
   set_microros_transports();
   // Synchronize time with the agent
-  float timeout_ms = 100;
+  double timeout_ms = 100;
   rmw_uros_sync_session(timeout_ms);
 
   if (rmw_uros_epoch_synchronized())
@@ -199,10 +198,10 @@ void setup()
 
  setupCan();
 
-  odrv16.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
-  odrv19.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
-  odrv16.setControllerMode(2, 1);
-  odrv19.setControllerMode(2, 1);
+  // odrv16.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
+  // odrv19.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
+  // odrv16.setControllerMode(2, 1);
+  // odrv19.setControllerMode(2, 1);
   setupODrive();
 }
 
