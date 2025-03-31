@@ -16,7 +16,7 @@ bool create_entities()
         &subscriber,
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, JointState),
-        "/joint_states"));
+        "/joint_ctrl"));
     RCCHECK(rclc_subscription_init_default(
         &OdomFlagSubscriber,
         &node,

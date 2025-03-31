@@ -35,9 +35,9 @@ This is the main file. Here we set up our constant definitions and variable decl
 //--End Includes--//
 
 
-// start definitions
-#define WHEELRAD .05715 // given that the wheel diameter is 4.5 inches, the radius is 2.25 inches or 0.05715 meters
-#define WHEELSEP .48
+// start definitions 
+#define WHEELRAD 0.05715 // given that the wheel diameter is 4.5 inches, the radius is 2.25 inches or 0.05715 meters
+#define WHEELSEP 0.42926 //.508 m is the outer wheel sep, 0.42926m is the inner wheel sep //.48m is original
 #define GEARRATIO 11.1111
 #define LED_PIN 13 // built in led
 // CAN bus baudrate. Make sure this matches for every device on the bus
