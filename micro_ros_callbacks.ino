@@ -35,8 +35,8 @@ void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
   { // do 100000hz (i think)
   //switch led
     digitalWrite(LED_PIN, !digitalRead(LED_PIN));
-    odomUpdate();
-    RCSOFTCHECK(rcl_publish(&OdomPublisher, &odom_msg, NULL));
+    // odomUpdate();
+    // RCSOFTCHECK(rcl_publish(&OdomPublisher, &odom_msg, NULL));
   }
   // RCSOFTCHECK(rcl_publish(&TFpublisher, &tf_msg, NULL));
   RCSOFTCHECK(rcl_publish(&LeftWheelPublisher, &lwpos, NULL));
