@@ -17,6 +17,12 @@ void onHeartbeat(Heartbeat_msg_t &msg, void *user_data)
 //called once to set up the ODrive in setup()
 void setupODrive()
 {
+//   while (!odrv19_user_data.received_heartbeat) {
+//     digitalToggle(LED_PIN);
+//     pumpEvents(can_intf);
+//     delay(100);
+//   }
+        
     Serial.println("Starting ODriveCAN");
 
     // Register callbacks for the heartbeat and encoder feedback messages
@@ -30,6 +36,20 @@ void setupODrive()
     odrv16.setControllerMode(2,2);
     odrv19.setControllerMode(2,2);
 
+        digitalToggle(LED_PIN);
+        delay(1000);
+
+        digitalToggle(LED_PIN);
+        delay(1000);
+        
+        digitalToggle(LED_PIN);
+        delay(1000);
+        
+        digitalToggle(LED_PIN);
+        delay(1000);
+        
+        digitalToggle(LED_PIN);
+        delay(1000);
     //sets the controller mode to velocity control with direct input
     // odrv16.setControllerMode(2,1);
     // odrv19.setControllerMode(2,1);
@@ -37,10 +57,12 @@ void setupODrive()
     Serial.println("Enabling closed loop control on odrv16...");
     while(odrv16_user_data.last_heartbeat.Axis_State != ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL or odrv19_user_data.last_heartbeat.Axis_State != ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL)
     {
-        
-        odrv16.clearErrors();
-        odrv19.clearErrors();
-        delay(1);
+            digitalToggle(LED_PIN);
+            delay(500);
+            digitalToggle(LED_PIN);
+            delay(500);
+            digitalToggle(LED_PIN);
+            delay(500);
         odrv16.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
         odrv19.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
 

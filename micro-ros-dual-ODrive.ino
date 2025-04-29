@@ -1,6 +1,7 @@
+// real file
 /*
-This code is designed for a Teensy 4.1 and will run code to connect to a micro-ros agent over the serial port. 
-This is the main file. Here we set up our constant definitions and variable declarations, as well as the main startup and loop functions. 
+This code is designed for a Teensy 4.1 and will run code to connect to a micro-ros agent over the serial port.
+This is the main file. Here we set up our constant definitions and variable declarations, as well as the main startup and loop functions.
 */
 //--Start Includes--//
 
@@ -17,7 +18,7 @@ This is the main file. Here we set up our constant definitions and variable decl
 #include <nav_msgs/msg/odometry.h>
 #include <tf2_msgs/msg/tf_message.h>
 #include <std_msgs/msg/string.h>
-#include <std_msgs/msg/float32.h>
+#include <std_msgs/msg/float64.h>
 
 // This is needed for the multiplexor
 #include <Wire.h>
@@ -31,17 +32,17 @@ This is the main file. Here we set up our constant definitions and variable decl
 // make changes as directed in lucas' micro-ros docs
 #include <FlexCAN_T4.h>
 #include "ODriveFlexCAN.hpp"
+struct ODriveStatus; // hack to prevent teensy compile error
 
 //--End Includes--//
 
-
-// start definitions 
+// start definitions
 #define WHEELRAD 0.05715 // given that the wheel diameter is 4.5 inches, the radius is 2.25 inches or 0.05715 meters
 #define WHEELSEP 0.42926 //.508 m is the outer wheel sep, 0.42926m is the inner wheel sep //.48m is original
 #define GEARRATIO 11.1111
 #define LED_PIN 13 // built in led
 // CAN bus baudrate. Make sure this matches for every device on the bus
-#define CAN_BAUDRATE 250000
+#define CAN_BAUDRATE 1000000
 
 // ODrive node_id for odrv0
 #define ODRV_NODE_ID_STARBOARD 19 // Becuase S is the 19th letter of the alphabet
@@ -49,9 +50,8 @@ This is the main file. Here we set up our constant definitions and variable decl
 
 // end definitions
 
-
-//start declarations
-// In this segment we create the objects required for micro_ros
+// start declarations
+//  In this segment we create the objects required for micro_ros
 static micro_ros_utilities_memory_conf_t conf = {0};
 rclc_executor_t executor;
 rcl_subscription_t subscriber;
@@ -60,6 +60,7 @@ rcl_publisher_t OdomPublisher;
 // rcl_publisher_t TFpublisher;
 rcl_publisher_t LeftWheelPublisher;
 rcl_publisher_t RightWheelPublisher;
+rcl_publisher_t JointPublisher;
 rclc_support_t support;
 rcl_allocator_t allocator;
 rcl_node_t node;
@@ -69,15 +70,22 @@ double time_now, time_old = 0.0;
 rcl_timer_t timer;
 // these msg are used to publish data
 sensor_msgs__msg__JointState msg;
+sensor_msgs__msg__JointState joint_publish_msg;
 nav_msgs__msg__Odometry odom_msg;
-std_msgs__msg__Float32 odom_flag_msg;
+std_msgs__msg__Float64 odom_flag_msg;
+std_msgs__msg__Float64 left_wheel_msg;
+std_msgs__msg__Float64 right_wheel_msg;
+
 // this allows for frames to be specified in msgs, as they ask for a specific type. see below
 // https://docs.vulcanexus.org/en/iron/rst/microros_documentation/user_api/user_api_utilities.html
 const char *str = "odom";
 rosidl_runtime_c__String odom_str = micro_ros_string_utilities_init(str);
 const char *str1 = "base_link";
 rosidl_runtime_c__String base_str = micro_ros_string_utilities_init(str1);
-
+const char *str2 = "leftwheel";
+rosidl_runtime_c__String left_str = micro_ros_string_utilities_init(str2);
+const char *str3 = "rightwheel";
+rosidl_runtime_c__String right_str = micro_ros_string_utilities_init(str3);
 
 // This is an error function that will blink the LED if something goes wrong
 #define RCCHECK(fn)              \
@@ -96,8 +104,6 @@ rosidl_runtime_c__String base_str = micro_ros_string_utilities_init(str1);
     }                            \
   }
 
-
-
 // These states are used to help start the robot without physically disconnecting it
 bool micro_ros_init_successful;
 enum states
@@ -108,16 +114,14 @@ enum states
   AGENT_DISCONNECTED
 } state;
 
-
 void error_loop()
 {
   while (1)
   {
     digitalWrite(LED_PIN, !digitalRead(LED_PIN));
-    delay(100);
+    delay(1000);
   }
 }
-
 
 // This starts the CanBus interface
 FlexCAN_T4<CAN3, RX_SIZE_256, TX_SIZE_16> can_intf;
@@ -138,8 +142,6 @@ struct ODriveUserData
 };
 ODriveUserData odrv16_user_data;
 ODriveUserData odrv19_user_data;
-
-
 
 /*odom declarations*/
 double wheelc1 = 1.0;
@@ -175,10 +177,10 @@ void setup()
   Wire.begin();
   Serial.begin(115200);
   // Wait for up to 1 seconds for the serial port to be opened on the PC side.
-  // If no PC connects, continue anyway.
-  for (int i = 0; i < 300000 && !Serial; ++i)
+  //  If no PC connects, continue anyway.
+  for (int i = 0; i < 30 && !Serial; ++i)
   {
-    delay(100);
+    delay(10);
   }
 
   set_microros_transports();
@@ -196,29 +198,54 @@ void setup()
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, HIGH);
 
- setupCan();
+  setupCan();
 
   // odrv16.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
   // odrv19.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
   // odrv16.setControllerMode(2, 1);
   // odrv19.setControllerMode(2, 1);
   setupODrive();
+  odrv16_user_data.last_feedback.Pos_Estimate = 0;
+  odrv19_user_data.last_feedback.Pos_Estimate = 0;
+
+  //         rosidl_runtime_c__String string_buffer[20];
+  // joint_publish_msg.name.data = string_buffer;
+  // joint_publish_msg.name.size = 2;
+  // joint_publish_msg.name.capacity = 2;
+
+  // joint_publish_msg.position.size = 2;
+  // joint_publish_msg.position.capacity = 2;
+  // joint_publish_msg.position.data = (double *)malloc(joint_publish_msg.position.capacity * sizeof(double));
+
+  // joint_publish_msg.velocity.size = 2;
+  // joint_publish_msg.velocity.capacity = 2;
+  // joint_publish_msg.velocity.data = (double *)malloc(joint_publish_msg.velocity.capacity * sizeof(double));
+
+  // joint_publish_msg.name.data[0].data = (char *)malloc(20);
+  // joint_publish_msg.name.data[0].capacity = 20;
+  // joint_publish_msg.name.data[0].size = 0;
+  // joint_publish_msg.name.data[0] = left_str;
+  // joint_publish_msg.name.data[1].data = (char *)malloc(20);
+  // joint_publish_msg.name.data[1].capacity = 20;
+  // joint_publish_msg.name.data[1].size = 0;
+  // joint_publish_msg.name.data[1] = right_str;
 }
 
-//this is the main loop. this function is called repeatedly by the Teensy
-//the state machine is set up here to allow micro ros to work properly
-// in the case that shutdown does not go smoothly or it takes some time to connect to the micro-ros agent on the main machine (PI)
+// this is the main loop. this function is called repeatedly by the Teensy
+// the state machine is set up here to allow micro ros to work properly
+//  in the case that shutdown does not go smoothly or it takes some time to connect to the micro-ros agent on the main machine (PI)
 
 void loop()
 {
-  switch (state) //checks what state we should be in
+
+  switch (state) // checks what state we should be in
   {
   case WAITING_AGENT:
-    if (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) //ping until we get a response from the agent
+    if (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) // ping until we get a response from the agent
     {
       state = AGENT_AVAILABLE;
     }
-    break; //exits from the switch, effectively starting the switch over again as there is no other code in loop()
+    break; // exits from the switch, effectively starting the switch over again as there is no other code in loop()
   case AGENT_AVAILABLE:
     if (create_entities()) // create_entities returns true if successful
     {
@@ -228,7 +255,7 @@ void loop()
     {
       state = WAITING_AGENT;
     }
-    break; //exits from the switch again
+    break; // exits from the switch again
   case AGENT_CONNECTED:
     if (RMW_RET_OK != rmw_uros_ping_agent(100, 1))
     {
@@ -236,13 +263,13 @@ void loop()
     }
     break;
   case AGENT_DISCONNECTED:
-    destroy_entities(); //if we lose connection, destroy the entities, then go back to default state
+    destroy_entities(); // if we lose connection, destroy the entities, then go back to default state
     state = WAITING_AGENT;
     break;
-  } //end switch
+  } // end switch
 
   if (state == AGENT_CONNECTED) // at the end of every loop, check if we are connected to agent
   {
-    RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(10))); //run the executor 1 time with a 10 ns delay
-  }
+    RCSOFTCHECK(rclc_executor_spin(&executor)); // run the executor 1 time 
 } // start the loop over again
+}

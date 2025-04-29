@@ -8,6 +8,7 @@ void destroy_entities()
   rcl_subscription_fini(&subscriber, &node);
   rcl_publisher_fini(&LeftWheelPublisher, &node);
   rcl_publisher_fini(&RightWheelPublisher, &node);
+  // rcl_publisher_fini(&JointPublisher, &node);
   // rcl_subscription_fini(&OdomFlagSubscriber, &node);
   rcl_timer_fini(&timer);
   rcl_clock_fini(&clock);

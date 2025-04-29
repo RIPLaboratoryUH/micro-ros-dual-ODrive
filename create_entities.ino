@@ -20,7 +20,7 @@ bool create_entities()
     // RCCHECK(rclc_subscription_init_default(
     //     &OdomFlagSubscriber,
     //     &node,
-    //     ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32),
+    //     ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float64),
     //     "/reset_odom"));
 
     // RCCHECK(rclc_publisher_init_default(
@@ -28,25 +28,30 @@ bool create_entities()
     //     &node,
     //     ROSIDL_GET_MSG_TYPE_SUPPORT(nav_msgs, msg, Odometry),
     //     "/diff_drive_controller/odom"));
-    RCCHECK(rclc_publisher_init_default(
+    RCCHECK(rclc_publisher_init_best_effort(
         &LeftWheelPublisher,
         &node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32),
+        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float64),
         "/left_wheel_pos"));
 
-    RCCHECK(rclc_publisher_init_default(
+    RCCHECK(rclc_publisher_init_best_effort(
         &RightWheelPublisher,
         &node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32),
+        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float64),
         "/right_wheel_pos"));
 
+        // RCCHECK(rclc_publisher_init_default(
+        // &JointPublisher,
+        // &node,
+        // ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, JointState),
+        // "/joints"));
     // RCCHECK(rclc_publisher_init_default(
     //       &TFpublisher,
     //       &node,
     //       ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
     //       "/tf"));
 
-    const unsigned int timer_timeout = 10;
+    const unsigned int timer_timeout = 100;
     RCCHECK(rclc_timer_init_default(
         &timer,
         &support,
@@ -68,5 +73,8 @@ bool create_entities()
     RCCHECK(rclc_executor_add_subscription(&executor, &subscriber, &msg, &subscription_callback, ON_NEW_DATA));
     // RCCHECK(rclc_executor_add_subscription(&executor, &OdomFlagSubscriber, &odom_flag_msg, &flag_callback, ON_NEW_DATA));
     RCCHECK(rclc_executor_add_timer(&executor, &timer));
+
+    left_wheel_msg.data = 0;
+    right_wheel_msg.data = 0;
     return true;
 }

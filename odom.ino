@@ -1,7 +1,28 @@
 // this function is called by the timer_callback function
 // generates the odometry data
-void odomUpdate()
+/*
+void getWheelPos() {
+    if (first == true){
+        odrv16_user_data.last_feedback.Pos_Estimate = 0;
+        odrv19_user_data.last_feedback.Pos_Estimate = 0;
+        first = false;
+    }
+    else{
+         encoderFeedback16 = odrv16_user_data.last_feedback;
+        encoderFeedback19 = odrv19_user_data.last_feedback;
+        lwvel = encoderFeedback16.Vel_Estimate;
+        rwvel = encoderFeedback19.Vel_Estimate;
+        lwpos = encoderFeedback16.Pos_Estimate; // 0 to n where n is #turns, float value. i.e 0.5 is half a turn
+        rwpos = encoderFeedback19.Pos_Estimate;
+        rwpos = rwpos * -1;
+        time_ns_old = time_ns_now;
+    }
+}
+*/
+
+ void odomUpdate()
 { 
+        /*
     if (first == true)
     {
         x_pos = 0;
@@ -11,8 +32,8 @@ void odomUpdate()
         rwpos = 0;
 
         // send some command to odrive that resets pos of encoders to 0
-        odrv16_user_data.last_feedback.Pos_Estimate = 0;
-        odrv19_user_data.last_feedback.Pos_Estimate = 0;
+        // odrv16_user_data.last_feedback.Pos_Estimate = 0;
+        // odrv19_user_data.last_feedback.Pos_Estimate = 0;
         // fill in the message
         odom_msg.header.stamp.sec = 0;
         odom_msg.header.stamp.nanosec = 0;
@@ -34,25 +55,27 @@ void odomUpdate()
         first = false;
     }
     else
-    { // regular update
-        encoderFeedback16 = odrv16_user_data.last_feedback;
-        encoderFeedback19 = odrv19_user_data.last_feedback;
-        lwvel = encoderFeedback16.Vel_Estimate;
-        rwvel = encoderFeedback19.Vel_Estimate;
-        lwpos = encoderFeedback16.Pos_Estimate; // 0 to n where n is #turns, float value. i.e 0.5 is half a turn
-        rwpos = encoderFeedback19.Pos_Estimate;
+    {*/
+    // regular update
+
+        
+        // lwvel =odrv16_user_data.last_feedback.Vel_Estimate;
+        // rwvel =odrv19_user_data.last_feedback.Vel_Estimate;
+        // lwpos =odrv16_user_data.last_feedback.Pos_Estimate; // 0 to n where n is #turns, float value. i.e 0.5 is half a turn
+        rwpos =odrv19_user_data.last_feedback.Pos_Estimate;
         rwpos = rwpos * -1;
 
-
+/*
         linvel = generateLinearVel(lwvel, rwvel);
         angvel = generateAngularVel(lwvel, rwvel);
-
-        lwpos = (lwpos / GEARRATIO) * WHEELRAD * 2 * 3.14;
-        rwpos = (rwpos / GEARRATIO) * WHEELRAD * 2 * 3.14;
+*/
+        // lwpos = (lwpos / GEARRATIO) * WHEELRAD * 2 * 3.14;
+        // rwpos = (rwpos / GEARRATIO) * WHEELRAD * 2 * 3.14;
         // maybe switch, so delta is taken before conversion to radians
+  /*
         delta_lwpos = lwpos - lwpos_prev;
         delta_rwpos = rwpos - rwpos_prev;
-
+*/
         // // throw out noise
         // if (abs(delta_lwpos) < 0.001)
         // {
@@ -63,6 +86,8 @@ void odomUpdate()
         //   delta_rwpos = 0;
         // }
 
+
+/*
         Davg = (delta_lwpos + delta_rwpos) / 2;
         Dth = (delta_rwpos - delta_lwpos) / WHEELSEP; //
         x = Davg * cos(theta_pos + (Dth / 2));
@@ -89,8 +114,8 @@ void odomUpdate()
         double q[4];
         // i put a negative here as the rotation was not matching in rviz
         euler_to_quat(0, 0, theta_pos, q);
-
-        // fill in the message
+*/
+/*        // fill in the message
         odom_msg.header.stamp.sec = time_ns_now / 1000000000;
         odom_msg.header.stamp.nanosec = time_ns_now % 1000000000;
         odom_msg.header.frame_id = odom_str;
@@ -108,7 +133,7 @@ void odomUpdate()
         odom_msg.twist.twist.linear.y = 0;
         odom_msg.twist.twist.linear.z = 0;
         odom_msg.twist.twist.angular.z = angvel;
-
+*/
         // //tf publisher
 
         // tf_msg.transforms.data[0].header.frame_id = odom_str;
@@ -123,5 +148,5 @@ void odomUpdate()
         time_ns_old = time_ns_now;
         lwpos_prev = lwpos;
         rwpos_prev = rwpos;
-    }
+    //}
 }
