@@ -19,6 +19,7 @@ This is the main file. Here we set up our constant definitions and variable decl
 #include <tf2_msgs/msg/tf_message.h>
 #include <std_msgs/msg/string.h>
 #include <std_msgs/msg/float64.h>
+#include <geometry_msgs/msg/vector3.h>
 
 // This is needed for the multiplexor
 #include <Wire.h>
@@ -75,6 +76,7 @@ nav_msgs__msg__Odometry odom_msg;
 std_msgs__msg__Float64 odom_flag_msg;
 std_msgs__msg__Float64 left_wheel_msg;
 std_msgs__msg__Float64 right_wheel_msg;
+geometry_msgs__msg__Vector3 vector3_msg;
 
 // this allows for frames to be specified in msgs, as they ask for a specific type. see below
 // https://docs.vulcanexus.org/en/iron/rst/microros_documentation/user_api/user_api_utilities.html
@@ -270,6 +272,6 @@ void loop()
 
   if (state == AGENT_CONNECTED) // at the end of every loop, check if we are connected to agent
   {
-    RCSOFTCHECK(rclc_executor_spin(&executor)); // run the executor 1 time 
+    RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100))); // run the executor 1 time 
 } // start the loop over again
 }

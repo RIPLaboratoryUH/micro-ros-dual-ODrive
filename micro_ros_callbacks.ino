@@ -62,22 +62,34 @@ void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
     Get_Encoder_Estimates_msg_t feedback = odrv16_user_data.last_feedback;
     odrv16_user_data.received_feedback = false;
     lwpos = feedback.Pos_Estimate;
+    // lwpos = lwpos / GEARRATIO;
     left_wheel_msg.data = lwpos;
     lwpos = 0;
 
-  }
     rcl_publish(&LeftWheelPublisher, &left_wheel_msg, NULL);
+  }
+
+  // if(odrv16_user_data.received_feedback) {
+  //   i++;
+  //   left_wheel_msg.data = i;
+  //   rcl_publish(&LeftWheelPublisher, &left_wheel_msg, NULL);
+
+  // }
+
+
 
   if (odrv19_user_data.received_feedback) {
     Get_Encoder_Estimates_msg_t feedback = odrv19_user_data.last_feedback;
     odrv19_user_data.received_feedback = false;
     rwpos = feedback.Pos_Estimate;
     rwpos = rwpos * -1;
+    // rwpos= rwpos / GEARRATIO;
     right_wheel_msg.data = rwpos;
     rwpos = 0;
 
-  }
     rcl_publish(&RightWheelPublisher, &right_wheel_msg, NULL);
+  }
+   
     // lwpos = odrv16_user_data.last_feedback.Pos_Estimate;
     // lwpos++;
     // RCSOFTCHECK(rcl_publish(&LeftWheelPublisher, &lwpos, NULL));
