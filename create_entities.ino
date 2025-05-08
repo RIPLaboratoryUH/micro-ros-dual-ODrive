@@ -45,6 +45,18 @@ bool create_entities()
         ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float64),
         "/right_wheel_pos"));
 
+        RCCHECK(rclc_publisher_init_default(
+        &VoltagePublisher,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Vector3),
+        "/motor16_voltage"));
+        RCCHECK(rclc_publisher_init_default(
+        &VoltagePublisher,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Vector3),
+        "/motor19_voltage"));
+
+
         // RCCHECK(rclc_publisher_init_default(
         // &JointPublisher,
         // &node,

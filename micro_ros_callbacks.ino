@@ -76,8 +76,6 @@ void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
 
   // }
 
-
-
   if (odrv19_user_data.received_feedback) {
     Get_Encoder_Estimates_msg_t feedback = odrv19_user_data.last_feedback;
     odrv19_user_data.received_feedback = false;
@@ -89,12 +87,16 @@ void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
 
     rcl_publish(&RightWheelPublisher, &right_wheel_msg, NULL);
   }
-   
-    // lwpos = odrv16_user_data.last_feedback.Pos_Estimate;
-    // lwpos++;
-    // RCSOFTCHECK(rcl_publish(&LeftWheelPublisher, &lwpos, NULL));
-    // rwpos++;
-    // RCSOFTCHECK(rcl_publish(&RightWheelPublisher, &rwpos, NULL));
 
-  // RCSOFTCHECK(rcl_publish(&TFpublisher, &tf_msg, NULL));
-}
+
+
+
+  //get power etc
+
+
+
+
+  
+  //rcl_publish(&VoltagePublisher, &voltage_msg, NULL);
+
+  }

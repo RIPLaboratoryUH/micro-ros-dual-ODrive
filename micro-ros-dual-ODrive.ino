@@ -61,6 +61,12 @@ rcl_publisher_t OdomPublisher;
 // rcl_publisher_t TFpublisher;
 rcl_publisher_t LeftWheelPublisher;
 rcl_publisher_t RightWheelPublisher;
+
+rcl_publisher_t LeftVoltagePublisher;
+rcl_publisher_t RightVoltagePublisher;
+
+
+
 rcl_publisher_t JointPublisher;
 rclc_support_t support;
 rcl_allocator_t allocator;
@@ -76,7 +82,8 @@ nav_msgs__msg__Odometry odom_msg;
 std_msgs__msg__Float64 odom_flag_msg;
 std_msgs__msg__Float64 left_wheel_msg;
 std_msgs__msg__Float64 right_wheel_msg;
-geometry_msgs__msg__Vector3 vector3_msg;
+geometry_msgs__msg__Vector3 left_voltage_msg;
+geometry_msgs__msg__Vector3 right_voltage_msg;
 
 // this allows for frames to be specified in msgs, as they ask for a specific type. see below
 // https://docs.vulcanexus.org/en/iron/rst/microros_documentation/user_api/user_api_utilities.html
@@ -232,6 +239,12 @@ void setup()
   // joint_publish_msg.name.data[1].size = 0;
   // joint_publish_msg.name.data[1] = right_str;
 }
+
+//odrive voltage stuff
+bool getPower(Get_Powers_msg_t &msg, uint16_t timeout_ms = 10); //already in can.h
+Get_Powers_msg_t pwrMsg16;
+Get_Powers_msg_t pwrMsg19;
+
 
 // this is the main loop. this function is called repeatedly by the Teensy
 // the state machine is set up here to allow micro ros to work properly
