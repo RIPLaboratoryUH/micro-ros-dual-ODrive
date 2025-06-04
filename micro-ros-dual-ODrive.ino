@@ -1,4 +1,5 @@
 // real file
+
 /*
 This code is designed for a Teensy 4.1 and will run code to connect to a micro-ros agent over the serial port.
 This is the main file. Here we set up our constant definitions and variable declarations, as well as the main startup and loop functions.
@@ -41,6 +42,7 @@ struct ODriveStatus; // hack to prevent teensy compile error
 #define WHEELRAD 0.05715 // given that the wheel diameter is 4.5 inches, the radius is 2.25 inches or 0.05715 meters
 #define WHEELSEP 0.42926 //.508 m is the outer wheel sep, 0.42926m is the inner wheel sep //.48m is original
 #define GEARRATIO 11.1111
+
 #define LED_PIN 13 // built in led
 // CAN bus baudrate. Make sure this matches for every device on the bus
 #define CAN_BAUDRATE 1000000
@@ -187,7 +189,7 @@ void setup()
   Serial.begin(115200);
   // Wait for up to 1 seconds for the serial port to be opened on the PC side.
   //  If no PC connects, continue anyway.
-  for (int i = 0; i < 30 && !Serial; ++i)
+  for (int i = 0; i < 3000 && !Serial; ++i)
   {
     delay(10);
   }
@@ -217,27 +219,6 @@ void setup()
   odrv16_user_data.last_feedback.Pos_Estimate = 0;
   odrv19_user_data.last_feedback.Pos_Estimate = 0;
 
-  //         rosidl_runtime_c__String string_buffer[20];
-  // joint_publish_msg.name.data = string_buffer;
-  // joint_publish_msg.name.size = 2;
-  // joint_publish_msg.name.capacity = 2;
-
-  // joint_publish_msg.position.size = 2;
-  // joint_publish_msg.position.capacity = 2;
-  // joint_publish_msg.position.data = (double *)malloc(joint_publish_msg.position.capacity * sizeof(double));
-
-  // joint_publish_msg.velocity.size = 2;
-  // joint_publish_msg.velocity.capacity = 2;
-  // joint_publish_msg.velocity.data = (double *)malloc(joint_publish_msg.velocity.capacity * sizeof(double));
-
-  // joint_publish_msg.name.data[0].data = (char *)malloc(20);
-  // joint_publish_msg.name.data[0].capacity = 20;
-  // joint_publish_msg.name.data[0].size = 0;
-  // joint_publish_msg.name.data[0] = left_str;
-  // joint_publish_msg.name.data[1].data = (char *)malloc(20);
-  // joint_publish_msg.name.data[1].capacity = 20;
-  // joint_publish_msg.name.data[1].size = 0;
-  // joint_publish_msg.name.data[1] = right_str;
 }
 
 //odrive voltage stuff

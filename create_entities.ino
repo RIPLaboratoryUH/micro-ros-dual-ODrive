@@ -17,11 +17,11 @@ bool create_entities()
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, JointState),
         "/joint_ctrl"));
-    // RCCHECK(rclc_subscription_init_default(
-    //     &OdomFlagSubscriber,
-    //     &node,
-    //     ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float64),
-    //     "/reset_odom"));
+    RCCHECK(rclc_subscription_init_default(
+        &OdomFlagSubscriber,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float64),
+        "/reset_odom"));
 
     // RCCHECK(rclc_publisher_init_default(
     //     &OdomPublisher,
@@ -46,15 +46,17 @@ bool create_entities()
         "/right_wheel_pos"));
 
         RCCHECK(rclc_publisher_init_default(
-        &VoltagePublisher,
+        &LeftVoltagePublisher,
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Vector3),
-        "/motor16_voltage"));
+        "/m16_power"));
+
+
         RCCHECK(rclc_publisher_init_default(
-        &VoltagePublisher,
+        &RightVoltagePublisher,
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Vector3),
-        "/motor19_voltage"));
+        "/m19_power"));
 
 
         // RCCHECK(rclc_publisher_init_default(
@@ -68,7 +70,7 @@ bool create_entities()
     //       ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
     //       "/tf"));
 
-    const unsigned int timer_timeout = 100;
+    const unsigned int timer_timeout = 250; //in milliseconds
     RCCHECK(rclc_timer_init_default(
         &timer,
         &support,
@@ -88,7 +90,7 @@ bool create_entities()
     // create executor
     RCCHECK(rclc_executor_init(&executor, &support.context, 8, &allocator));
     RCCHECK(rclc_executor_add_subscription(&executor, &subscriber, &msg, &subscription_callback, ON_NEW_DATA));
-    // RCCHECK(rclc_executor_add_subscription(&executor, &OdomFlagSubscriber, &odom_flag_msg, &flag_callback, ON_NEW_DATA));
+    RCCHECK(rclc_executor_add_subscription(&executor, &OdomFlagSubscriber, &odom_flag_msg, &flag_callback, ON_NEW_DATA));
     RCCHECK(rclc_executor_add_timer(&executor, &timer));
 
     left_wheel_msg.data = 0;

@@ -65,6 +65,8 @@ void setupODrive()
             delay(500);
         odrv16.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
         odrv19.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
+        odrv16.setControllerMode(2,2);
+        odrv19.setControllerMode(2,2);
 
         for (int i = 0; i < 15; ++i)
         {

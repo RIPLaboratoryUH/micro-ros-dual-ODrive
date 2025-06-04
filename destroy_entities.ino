@@ -12,7 +12,7 @@ void destroy_entities()
   rcl_publisher_fini(&LeftVoltagePublisher, &node);
   rcl_publisher_fini(&RightVoltagePublisher, &node);
   // rcl_publisher_fini(&JointPublisher, &node);
-  // rcl_subscription_fini(&OdomFlagSubscriber, &node);
+  rcl_subscription_fini(&OdomFlagSubscriber, &node);
   rcl_timer_fini(&timer);
   rcl_clock_fini(&clock);
   rclc_executor_fini(&executor);
