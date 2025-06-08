@@ -32,9 +32,9 @@ void setupODrive()
     odrv19.onFeedback(onFeedback, &odrv19_user_data);
     odrv19.onStatus(onHeartbeat, &odrv19_user_data);
 
-    // sets the controller mode to velocity control with ramped vel input
-    odrv16.setControllerMode(2,2);
-    odrv19.setControllerMode(2,2);
+    // sets the controller mode to position control with passthrough input
+    odrv16.setControllerMode(3,1);
+    odrv19.setControllerMode(3,1);
 
         digitalToggle(LED_PIN);
         delay(1000);
