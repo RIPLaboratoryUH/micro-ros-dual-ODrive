@@ -15,10 +15,34 @@ void flag_callback(const void *msgin)
   const std_msgs__msg__Float64 *msg = (const std_msgs__msg__Float64 *)msgin;
   if (msg->data == 1)
   {
-    odrv16_user_data.last_feedback.Pos_Estimate = 0;
-    odrv19_user_data.last_feedback.Pos_Estimate = 0;
+
+        
+        //turn on led
+        digitalWrite(LED_PIN, HIGH);
+    odrv16.reset(0);
+    odrv19.reset(0);
+    setupODrive(); // re-setup the odrive after reset
+            digitalToggle(LED_PIN);
+        delay(100);
+
+        digitalToggle(LED_PIN);
+        delay(100);
+        
+        digitalToggle(LED_PIN);
+        delay(100);
+        
+        digitalToggle(LED_PIN);
+        delay(100);
+        
+        digitalToggle(LED_PIN);
+        delay(100);
+    delay(2000); // wait for the odrive to reset
+
     odrv16.clearErrors();
     odrv19.clearErrors();
+    odrv19_user_data.last_feedback.Pos_Estimate = 0;
+    odrv16_user_data.last_feedback.Pos_Estimate = 0;
+
   }
 }
 
@@ -40,6 +64,14 @@ time_ns_now = rmw_uros_epoch_nanos();
     lwpos = 0;
 
     rcl_publish(&LeftWheelPublisher, &left_wheel_msg, NULL);
+
+
+
+    odrv16.request(pwrMsg16,1);
+    left_voltage_msg.x = time_ns_now;
+    left_voltage_msg.y = pwrMsg16.Electrical_Power;
+    left_voltage_msg.z = feedback.Vel_Estimate;
+    rcl_publish(&LeftVoltagePublisher, &left_voltage_msg, NULL);
   }
   if (odrv19_user_data.received_feedback) {
     Get_Encoder_Estimates_msg_t feedback = odrv19_user_data.last_feedback;
@@ -52,21 +84,16 @@ time_ns_now = rmw_uros_epoch_nanos();
     rwpos = 0;
 
     rcl_publish(&RightWheelPublisher, &right_wheel_msg, NULL);
+    odrv19.request(pwrMsg19,1);
+    right_voltage_msg.x = time_ns_now;
+    right_voltage_msg.y = pwrMsg19.Electrical_Power;
+    right_voltage_msg.z = feedback.Vel_Estimate;
+    rcl_publish(&RightVoltagePublisher, &right_voltage_msg, NULL);
 
 
   }
 
 
-    // odrv16.request(pwrMsg16,1);
-    // left_voltage_msg.x = time_ns_now;
-    // left_voltage_msg.y = pwrMsg16.Electrical_Power;
-    // left_voltage_msg.z = feedback.Vel_Estimate;
-    // rcl_publish(&LeftVoltagePublisher, &left_voltage_msg, NULL);
-    // odrv19.request(pwrMsg19,1);
-    // right_voltage_msg.x = time_ns_now;
-    // right_voltage_msg.y = pwrMsg19.Electrical_Power;
-    // right_voltage_msg.z = feedback.Vel_Estimate;
-    // rcl_publish(&RightVoltagePublisher, &right_voltage_msg, NULL);
 
 
 

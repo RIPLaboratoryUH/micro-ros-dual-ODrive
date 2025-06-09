@@ -27,14 +27,19 @@ This is the main file. Here we set up our constant definitions and variable decl
 
 // Needed for CanBus / ODrive
 #include <Arduino.h>
-#include "ODriveCAN.h"
+//clone https://github.com/odriverobotics/ODriveArduino
+//make changes as directed in "MicroROS/Teensy research document", found in RIPLab/UXS/ROS drive folder.
 
-// See https://github.com/tonton81/FlexCAN_T4
-// clone https://github.com/tonton81/FlexCAN_T4.git into /src
-// make changes as directed in lucas' micro-ros docs
-#include <FlexCAN_T4.h>
+//this is needed because the Arduino toolchain does not support C-style designated initializers reliably
+#include "ODriveCAN.h"
 #include "ODriveFlexCAN.hpp"
 struct ODriveStatus; // hack to prevent teensy compile error
+//this must be imported before flexcan, because there are some conflicts with the FlexCAN_T4 library
+
+// See https://github.com/tonton81/FlexCAN_T4
+// clone https://github.com/tonton81/FlexCAN_T4.git into libaries
+#include <FlexCAN_T4.h>
+
 
 //--End Includes--//
 
@@ -125,6 +130,7 @@ enum states
   AGENT_DISCONNECTED
 } state;
 
+
 void error_loop()
 {
   while (1)
@@ -189,7 +195,7 @@ void setup()
   Serial.begin(115200);
   // Wait for up to 1 seconds for the serial port to be opened on the PC side.
   //  If no PC connects, continue anyway.
-  for (int i = 0; i < 3000 && !Serial; ++i)
+  for (int i = 0; i < 300 && !Serial; ++i)
   {
     delay(10);
   }
