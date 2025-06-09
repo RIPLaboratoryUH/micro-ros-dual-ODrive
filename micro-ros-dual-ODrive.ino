@@ -78,7 +78,7 @@ double time_now, time_old = 0.0;
 
 rcl_timer_t timer;
 // these msg are used to publish data
-sensor_msgs__msg__JointState msg;
+std_msgs__msg__Float64 msg;
 sensor_msgs__msg__JointState joint_publish_msg;
 nav_msgs__msg__Odometry odom_msg;
 std_msgs__msg__Float64 odom_flag_msg;

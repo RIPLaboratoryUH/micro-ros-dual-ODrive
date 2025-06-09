@@ -24,6 +24,7 @@ void flag_callback(const void *msgin)
 void position_callback(const void *msgin)
 {
   const std_msgs__msg__Float64 *msg = (const std_msgs__msg__Float64 *)msgin;
+
   float pos = msg->data;
   odrv16.setPosition(pos);
   odrv19.setPosition(-pos);

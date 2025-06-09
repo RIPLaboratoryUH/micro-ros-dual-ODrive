@@ -82,11 +82,7 @@ bool create_entities()
         RCL_MS_TO_NS(timer_timeout),
         timer_callback));
 
-    // memory allocation
-    bool success = micro_ros_utilities_create_message_memory(
-        ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, JointState),
-        &msg,
-        conf);
+
     // bool success1 = micro_ros_utilities_create_message_memory(
     //     ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
     //     &tf_msg,

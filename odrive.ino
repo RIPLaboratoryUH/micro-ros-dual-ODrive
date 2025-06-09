@@ -32,9 +32,10 @@ void setupODrive()
     odrv19.onFeedback(onFeedback, &odrv19_user_data);
     odrv19.onStatus(onHeartbeat, &odrv19_user_data);
 
-    // sets the controller mode to position control with passthrough input
-    odrv16.setControllerMode(3,1);
-    odrv19.setControllerMode(3,1);
+    // sets the controller mode to position control with filtered input
+    //https://docs.odriverobotics.com/v/latest/fibre_types/com_odriverobotics_ODrive.html#ODrive.Controller.InputMode
+    odrv16.setControllerMode(3,3);
+    odrv19.setControllerMode(3,3);
 
         digitalToggle(LED_PIN);
         delay(1000);
@@ -65,8 +66,7 @@ void setupODrive()
             delay(500);
         odrv16.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
         odrv19.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
-        odrv16.setControllerMode(2,2);
-        odrv19.setControllerMode(2,2);
+
 
         for (int i = 0; i < 15; ++i)
         {
