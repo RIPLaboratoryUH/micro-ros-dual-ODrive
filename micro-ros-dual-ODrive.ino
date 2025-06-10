@@ -51,6 +51,13 @@ struct ODriveStatus; // hack to prevent teensy compile error
 #define ODRV_NODE_ID_STARBOARD 19 // Becuase S is the 19th letter of the alphabet
 #define ODRV_NODE_ID_PORT 16      // Because P is the 16th letter of the alphabet
 
+//limits for the odrive trapezoidal controller'
+//https://docs.odriverobotics.com/v/latest/fibre_types/com_odriverobotics_ODrive.html#ODrive.TrapezoidalTrajectory.Config
+#define VEL_LIMIT 4.0            // rev/s
+#define ACCEL_LIMIT 2.0          // rev/s^2
+#define DECEL_LIMIT 2.0          // rev/s^2
+
+
 // end definitions
 
 // start declarations

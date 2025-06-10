@@ -32,25 +32,21 @@ void setupODrive()
     odrv19.onFeedback(onFeedback, &odrv19_user_data);
     odrv19.onStatus(onHeartbeat, &odrv19_user_data);
 
-    // sets the controller mode to position control with filtered input
+    //sets the controller mode to position control with  an online trapezoidal trajectory planner
     //https://docs.odriverobotics.com/v/latest/fibre_types/com_odriverobotics_ODrive.html#ODrive.Controller.InputMode
-    odrv16.setControllerMode(3,1);
-    odrv19.setControllerMode(3,1);
-
+    odrv16.setControllerMode(3,5);
+    odrv19.setControllerMode(3,5);
+odrv16.setTrapezoidalVelLimit(VEL_LIMIT);
+    odrv19.setTrapezoidalVelLimit(VEL_LIMIT);
+    odrv16.setTrapezoidalAccelLimit(ACCEL_LIMIT, DECEL_LIMIT);
+    odrv19.setTrapezoidalAccelLimit(ACCEL_LIMIT, DECEL_LIMIT);
         digitalToggle(LED_PIN);
         delay(1000);
-
         digitalToggle(LED_PIN);
         delay(1000);
-        
         digitalToggle(LED_PIN);
         delay(1000);
-        
         digitalToggle(LED_PIN);
-        delay(1000);
-        
-        digitalToggle(LED_PIN);
-        delay(1000);
     //sets the controller mode to velocity control with direct input
     // odrv16.setControllerMode(2,1);
     // odrv19.setControllerMode(2,1);
