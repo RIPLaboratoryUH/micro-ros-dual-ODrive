@@ -50,7 +50,7 @@ struct ODriveStatus; // hack to prevent teensy compile error
 
 #define LED_PIN 13 // built in led
 // CAN bus baudrate. Make sure this matches for every device on the bus
-#define CAN_BAUDRATE 1000000
+#define CAN_BAUDRATE 250000 
 
 // ODrive node_id for odrv0
 #define ODRV_NODE_ID_STARBOARD 19 // Becuase S is the 19th letter of the alphabet
