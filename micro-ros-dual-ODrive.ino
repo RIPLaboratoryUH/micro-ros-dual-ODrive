@@ -45,7 +45,7 @@ struct ODriveStatus; // hack to prevent teensy compile error
 
 #define LED_PIN 13 // built in led
 // CAN bus baudrate. Make sure this matches for every device on the bus
-#define CAN_BAUDRATE 1000000
+#define CAN_BAUDRATE 250000
 
 // ODrive node_id for odrv0
 #define ODRV_NODE_ID_STARBOARD 19 // Becuase S is the 19th letter of the alphabet
@@ -53,9 +53,9 @@ struct ODriveStatus; // hack to prevent teensy compile error
 
 //limits for the odrive trapezoidal controller'
 //https://docs.odriverobotics.com/v/latest/fibre_types/com_odriverobotics_ODrive.html#ODrive.TrapezoidalTrajectory.Config
-#define VEL_LIMIT 4.0            // rev/s
-#define ACCEL_LIMIT 2.0          // rev/s^2
-#define DECEL_LIMIT 2.0          // rev/s^2
+#define VEL_LIMIT 8.0            // rev/s
+#define ACCEL_LIMIT 3.0          // rev/s^2
+#define DECEL_LIMIT 3.0          // rev/s^2
 
 
 // end definitions
