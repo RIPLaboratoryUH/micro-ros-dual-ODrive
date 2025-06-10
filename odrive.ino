@@ -34,8 +34,8 @@ void setupODrive()
 
     // sets the controller mode to position control with filtered input
     //https://docs.odriverobotics.com/v/latest/fibre_types/com_odriverobotics_ODrive.html#ODrive.Controller.InputMode
-    odrv16.setControllerMode(3,3);
-    odrv19.setControllerMode(3,3);
+    odrv16.setControllerMode(3,1);
+    odrv19.setControllerMode(3,1);
 
         digitalToggle(LED_PIN);
         delay(1000);
