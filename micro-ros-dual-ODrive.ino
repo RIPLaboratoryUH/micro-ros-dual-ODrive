@@ -51,7 +51,7 @@ struct ODriveStatus; // hack to prevent teensy compile error
 #define ODRV_NODE_ID_STARBOARD 19 // Becuase S is the 19th letter of the alphabet
 #define ODRV_NODE_ID_PORT 16      // Because P is the 16th letter of the alphabet
 
-//limits for the odrive trapezoidal controller'
+//limits for the odrive trapezoidal controller
 //https://docs.odriverobotics.com/v/latest/fibre_types/com_odriverobotics_ODrive.html#ODrive.TrapezoidalTrajectory.Config
 #define VEL_LIMIT 8.0            // rev/s
 #define ACCEL_LIMIT 3.0          // rev/s^2
@@ -196,7 +196,7 @@ void setup()
   Serial.begin(115200);
   // Wait for up to 1 seconds for the serial port to be opened on the PC side.
   //  If no PC connects, continue anyway.
-  for (int i = 0; i < 3000 && !Serial; ++i)
+  for (int i = 0; i < 300 && !Serial; ++i)
   {
     delay(10);
   }
