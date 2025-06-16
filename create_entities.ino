@@ -55,14 +55,14 @@ bool create_entities()
         &LeftVoltagePublisher,
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Vector3),
-        "/m16_power"));
+        "/m16_power")); //Request to change name to "m16_posVel"
 
 
         RCCHECK(rclc_publisher_init_default(
         &RightVoltagePublisher,
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Vector3),
-        "/m19_power"));
+        "/m19_power")); //Request to change name to "m19_posVel"
 
 
         // RCCHECK(rclc_publisher_init_default(
