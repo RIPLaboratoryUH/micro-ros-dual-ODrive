@@ -33,9 +33,9 @@ void setupODrive()
     //sets the controller mode to position control with  an online trapezoidal trajectory planner
     //https://docs.odriverobotics.com/v/latest/fibre_types/com_odriverobotics_ODrive.html#ODrive.Controller.InputMode
 
-    //sets the controller mode to velocity control with direct input
-    // odrv16.setControllerMode(2,1);
-    // odrv19.setControllerMode(2,1);
+    //sets the controller mode to velocity control with ramped vel input
+    // odrv16.setControllerMode(2,2);
+    // odrv19.setControllerMode(2,2);
 
     while(odrv16_user_data.last_heartbeat.Axis_State != ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL or odrv19_user_data.last_heartbeat.Axis_State != ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL)
     {

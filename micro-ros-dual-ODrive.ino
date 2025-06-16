@@ -69,8 +69,9 @@ struct ODriveStatus; // hack to prevent teensy compile error
 //  In this segment we create the objects required for micro_ros
 static micro_ros_utilities_memory_conf_t conf = {0};
 rclc_executor_t executor;
-rcl_subscription_t subscriber;
-rcl_subscription_t OdomFlagSubscriber;
+rcl_subscription_t joint_state_subscriber;
+rcl_subscription_t pos_subscriber;
+rcl_subscription_t odom_flag_subscriber;
 rcl_publisher_t OdomPublisher;
 // rcl_publisher_t TFpublisher;
 rcl_publisher_t LeftWheelPublisher;

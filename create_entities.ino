@@ -12,18 +12,19 @@ bool create_entities()
     RCCHECK(rclc_node_init_default(&node, "micro_ros_arduino_node", "", &support));
 
     // create subscriber
-    // RCCHECK(rclc_subscription_init_default(
-    //     &subscriber,
-    //     &node,
-    //     ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, JointState),
-    //     "/joint_ctrl"));
     RCCHECK(rclc_subscription_init_default(
-        &subscriber,
+        &joint_state_subscriber,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, JointState),
+        "/joint_ctrl"));
+    
+    RCCHECK(rclc_subscription_init_default(
+        &pos_subscriber,
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float64),
         "/position_cmd"));
     RCCHECK(rclc_subscription_init_default(
-        &OdomFlagSubscriber,
+        &odom_flag_subscriber,
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float64),
         "/reset_odom"));
@@ -90,8 +91,9 @@ bool create_entities()
 
     // create executor
     RCCHECK(rclc_executor_init(&executor, &support.context, 8, &allocator));
-    RCCHECK(rclc_executor_add_subscription(&executor, &subscriber, &pos_msg, &position_callback, ON_NEW_DATA));
-    RCCHECK(rclc_executor_add_subscription(&executor, &OdomFlagSubscriber, &odom_flag_msg, &flag_callback, ON_NEW_DATA));
+    RCCHECK(rclc_executor_add_subscription(&executor, &joint_state_subscriber, &pos_msg, &subscription_callback, ON_NEW_DATA));
+    RCCHECK(rclc_executor_add_subscription(&executor, &odom_flag_subscriber, &odom_flag_msg, &flag_callback, ON_NEW_DATA));
+    RCCHECK(rclc_executor_add_subscription(&executor, &pos_subscriber, &pos_msg, &position_callback, ON_NEW_DATA));
     RCCHECK(rclc_executor_add_timer(&executor, &timer));
 
     left_wheel_msg.data = 0;
