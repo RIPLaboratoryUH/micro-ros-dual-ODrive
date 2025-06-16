@@ -50,11 +50,18 @@ struct ODriveStatus; // hack to prevent teensy compile error
 
 #define LED_PIN 13 // built in led
 // CAN bus baudrate. Make sure this matches for every device on the bus
-#define CAN_BAUDRATE 250000 
+#define CAN_BAUDRATE 250000
 
 // ODrive node_id for odrv0
 #define ODRV_NODE_ID_STARBOARD 19 // Becuase S is the 19th letter of the alphabet
 #define ODRV_NODE_ID_PORT 16      // Because P is the 16th letter of the alphabet
+
+//limits for the odrive trapezoidal controller
+//https://docs.odriverobotics.com/v/latest/fibre_types/com_odriverobotics_ODrive.html#ODrive.TrapezoidalTrajectory.Config
+#define VEL_LIMIT 8.0            // rev/s
+#define ACCEL_LIMIT 3.0          // rev/s^2
+#define DECEL_LIMIT 3.0          // rev/s^2
+
 
 // end definitions
 
@@ -83,7 +90,8 @@ double time_now, time_old = 0.0;
 
 rcl_timer_t timer;
 // these msg are used to publish data
-sensor_msgs__msg__JointState msg;
+sensor_msgs__msg__JointState joint_state_msg; 
+std_msgs__msg__Float64 pos_msg;
 sensor_msgs__msg__JointState joint_publish_msg;
 nav_msgs__msg__Odometry odom_msg;
 std_msgs__msg__Float64 odom_flag_msg;

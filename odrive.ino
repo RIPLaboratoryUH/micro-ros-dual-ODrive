@@ -30,26 +30,9 @@ void setupODrive()
     odrv19.onFeedback(onFeedback, &odrv19_user_data);
     odrv19.onStatus(onHeartbeat, &odrv19_user_data);
 
-    // sets the controller mode to velocity control with ramped vel input
-    odrv16.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
-    odrv19.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
-    odrv16.setControllerMode(2,2);
-    odrv19.setControllerMode(2,2);
+    //sets the controller mode to position control with  an online trapezoidal trajectory planner
+    //https://docs.odriverobotics.com/v/latest/fibre_types/com_odriverobotics_ODrive.html#ODrive.Controller.InputMode
 
-        // digitalToggle(LED_PIN);
-        // delay(100);
-
-        // digitalToggle(LED_PIN);
-        // delay(100);
-        
-        // digitalToggle(LED_PIN);
-        // delay(100);
-        
-        // digitalToggle(LED_PIN);
-        // delay(100);
-        
-        // digitalToggle(LED_PIN);
-        // delay(100);
     //sets the controller mode to velocity control with direct input
     // odrv16.setControllerMode(2,1);
     // odrv19.setControllerMode(2,1);
@@ -59,9 +42,19 @@ void setupODrive()
 
         odrv16.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
         odrv19.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
-        odrv16.setControllerMode(2,2);
-        odrv19.setControllerMode(2,2);
-
+    odrv16.setControllerMode(3,5);
+    odrv19.setControllerMode(3,5);
+odrv16.setTrapezoidalVelLimit(VEL_LIMIT);
+    odrv19.setTrapezoidalVelLimit(VEL_LIMIT);
+    odrv16.setTrapezoidalAccelLimits(ACCEL_LIMIT, DECEL_LIMIT);
+    odrv19.setTrapezoidalAccelLimits(ACCEL_LIMIT, DECEL_LIMIT);
+        digitalToggle(LED_PIN);
+        delay(1000);
+        digitalToggle(LED_PIN);
+        delay(1000);
+        digitalToggle(LED_PIN);
+        delay(1000);
+        digitalToggle(LED_PIN);
         for (int i = 0; i < 15; ++i)
         {
             delay(10);
