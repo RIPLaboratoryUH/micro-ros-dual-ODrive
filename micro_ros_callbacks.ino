@@ -60,7 +60,7 @@ void position_callback(const void *msgin)
 void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
 {
 
-  time_ns_now = rmw_uros_epoch_nanos();
+  time_ns_now = rmw_uros_epoch_nanos(); //change to time_microsecond_now = rmw_uros_epoch_nanos() / 1000;
   // print position and velocity for Serial Plotter
   if (odrv16_user_data.received_feedback)
   {
@@ -76,8 +76,8 @@ void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
     rcl_publish(&LeftWheelPublisher, &left_wheel_msg, NULL);
 
     odrv16.request(pwrMsg16, 1);
-    left_voltage_msg.x = time_ns_now;
-    left_voltage_msg.y = pwrMsg16.Electrical_Power;
+    left_voltage_msg.x = time_ns_now; //Change to time_microseconds_now
+    left_voltage_msg.y = pwrMsg16.Electrical_Power;  //Change to feedback.Pos_Estimate
     left_voltage_msg.z = feedback.Vel_Estimate;
     rcl_publish(&LeftVoltagePublisher, &left_voltage_msg, NULL);
   }
@@ -94,8 +94,8 @@ void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
 
     rcl_publish(&RightWheelPublisher, &right_wheel_msg, NULL);
     odrv19.request(pwrMsg19,1);
-    right_voltage_msg.x = time_ns_now;
-    right_voltage_msg.y = pwrMsg19.Electrical_Power;
+    right_voltage_msg.x = time_ns_now; //Change to time_microseconds_now
+    right_voltage_msg.y = pwrMsg19.Electrical_Power; //Change to feedback.Pos_Estimate
     right_voltage_msg.z = feedback.Vel_Estimate;
     rcl_publish(&RightVoltagePublisher, &right_voltage_msg, NULL);
   }
