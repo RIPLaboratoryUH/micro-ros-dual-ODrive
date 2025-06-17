@@ -192,6 +192,7 @@ double Dth;
 Get_Encoder_Estimates_msg_t encoderFeedback16;
 Get_Encoder_Estimates_msg_t encoderFeedback19;
 int64_t time_ns_now;
+int64_t time_microseconds_now;
 int64_t time_ns_old;
 bool first = true;
 
