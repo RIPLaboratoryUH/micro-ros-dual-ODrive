@@ -140,7 +140,16 @@ void error_loop()
     delay(1000);
   }
 }
-
+void blink_led(int times, int delay_ms = 500)
+{
+  for (int i = 0; i < times; ++i)
+  {
+    digitalWrite(LED_PIN, HIGH);
+    delay(delay_ms);
+    digitalWrite(LED_PIN, LOW);
+    delay(delay_ms);
+  }
+}
 // This starts the CanBus interface
 FlexCAN_T4<CAN3, RX_SIZE_256, TX_SIZE_16> can_intf;
 
