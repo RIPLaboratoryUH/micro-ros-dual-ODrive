@@ -91,7 +91,7 @@ bool create_entities()
 
     // create executor
     RCCHECK(rclc_executor_init(&executor, &support.context, 8, &allocator));
-    RCCHECK(rclc_executor_add_subscription(&executor, &joint_state_subscriber, &pos_msg, &subscription_callback, ON_NEW_DATA));
+    RCCHECK(rclc_executor_add_subscription(&executor, &joint_state_subscriber, &joint_state_msg, &subscription_callback, ON_NEW_DATA));
     RCCHECK(rclc_executor_add_subscription(&executor, &odom_flag_subscriber, &odom_flag_msg, &flag_callback, ON_NEW_DATA));
     RCCHECK(rclc_executor_add_subscription(&executor, &pos_subscriber, &pos_msg, &position_callback, ON_NEW_DATA));
     RCCHECK(rclc_executor_add_timer(&executor, &timer));
