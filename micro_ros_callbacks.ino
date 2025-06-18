@@ -67,6 +67,7 @@ void flag_callback(const void *msgin)
 }
 void position_callback(const void *msgin)
 {
+  delay(1000);
   const std_msgs__msg__Float64 *msg = (const std_msgs__msg__Float64 *)msgin;
 
   float pos = msg->data;
@@ -81,43 +82,36 @@ void position_callback(const void *msgin)
 // this will generate and publish the odometry data
 void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
 {
+  time_ns_now = rmw_uros_epoch_nanos();
+  time_microseconds_now = time_ns_now / 1000;
 
-  time_microseconds_now = rmw_uros_epoch_nanos()/1000; 
-  if (odrv16_user_data.received_feedback)
-  {
-    Get_Encoder_Estimates_msg_t feedback = odrv16_user_data.last_feedback;
+    Get_Encoder_Estimates_msg_t feedback16 = odrv16_user_data.last_feedback;
+    Get_Encoder_Estimates_msg_t feedback19 = odrv19_user_data.last_feedback;
     odrv16_user_data.received_feedback = false;
-    lwpos = feedback.Pos_Estimate;
+    lwpos = feedback16.Pos_Estimate;
     lwpos = lwpos / GEARRATIO;
     lwpos = lwpos * 2 * PI;
-
-    left_wheel_msg.data = lwpos;
+    wheel_pos_msg.y = lwpos;
     lwpos = 0;
-
-    rcl_publish(&LeftWheelPublisher, &left_wheel_msg, NULL);
-
-    odrv16.request(pwrMsg16, 1);
-    left_voltage_msg.x = time_microseconds_now; 
-    left_voltage_msg.y = feedback.Pos_Estimate; 
-    left_voltage_msg.z = feedback.Vel_Estimate;
-    rcl_publish(&LeftVoltagePublisher, &left_voltage_msg, NULL);
-  }
-  if (odrv19_user_data.received_feedback)
-  {
-    Get_Encoder_Estimates_msg_t feedback = odrv19_user_data.last_feedback;
     odrv19_user_data.received_feedback = false;
-    rwpos = feedback.Pos_Estimate;
+    rwpos = feedback19.Pos_Estimate;
     rwpos = rwpos * -1;
     rwpos = rwpos / GEARRATIO;
     rwpos = rwpos * 2 * PI;
-    right_wheel_msg.data = rwpos;
+    wheel_pos_msg.z = rwpos;
     rwpos = 0;
+    wheel_pos_msg.x = time_ns_now; // set the timestamp for the wheel positions
+    rcl_publish(&WheelPublisher, &wheel_pos_msg, NULL);
 
-    rcl_publish(&RightWheelPublisher, &right_wheel_msg, NULL);
-    odrv19.request(pwrMsg19,1);
-    right_voltage_msg.x = time_microseconds_now; 
-    right_voltage_msg.y = feedback.Pos_Estimate; 
-    right_voltage_msg.z = feedback.Vel_Estimate;
-    rcl_publish(&RightVoltagePublisher, &right_voltage_msg, NULL);
-  }
+    //     odrv16.request(pwrMsg16, 1);
+    // left_voltage_msg.x = time_microseconds_now; 
+    // left_voltage_msg.y = feedback16.Pos_Estimate; 
+    // left_voltage_msg.z = feedback16.Vel_Estimate;
+    // rcl_publish(&LeftVoltagePublisher, &left_voltage_msg, NULL);
+    //     odrv19.request(pwrMsg19,1);
+    // right_voltage_msg.x = time_microseconds_now; 
+    // right_voltage_msg.y = feedback19.Pos_Estimate; 
+    // right_voltage_msg.z = feedback19.Vel_Estimate;
+    // rcl_publish(&RightVoltagePublisher, &right_voltage_msg, NULL);
+  
 }

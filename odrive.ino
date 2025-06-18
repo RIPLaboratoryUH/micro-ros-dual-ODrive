@@ -37,9 +37,6 @@ void setupODrive()
     // odrv16.setControllerMode(2,2);
     // odrv19.setControllerMode(2,2);
 
-    while(odrv16_user_data.last_heartbeat.Axis_State != ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL or odrv19_user_data.last_heartbeat.Axis_State != ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL)
-    {
-
         odrv16.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
         odrv19.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
     odrv16.setControllerMode(3,5);
@@ -60,6 +57,6 @@ odrv16.setTrapezoidalVelLimit(VEL_LIMIT);
             delay(10);
             pumpEvents(can_intf);
         }
-        break;
-    }
+    digitalWrite(LED_PIN, LOW); // Turn off the LED after setup
+ 
 }

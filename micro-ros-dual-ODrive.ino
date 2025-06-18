@@ -22,6 +22,7 @@ This is the main file. Here we set up our constant definitions and variable decl
 #include <std_msgs/msg/float64.h>
 #include <geometry_msgs/msg/vector3.h>
 
+
 // This is needed for the multiplexor
 #include <Wire.h>
 
@@ -74,8 +75,9 @@ rcl_subscription_t pos_subscriber;
 rcl_subscription_t odom_flag_subscriber;
 rcl_publisher_t OdomPublisher;
 // rcl_publisher_t TFpublisher;
-rcl_publisher_t LeftWheelPublisher;
-rcl_publisher_t RightWheelPublisher;
+// rcl_publisher_t LeftWheelPublisher;
+// rcl_publisher_t RightWheelPublisher;
+rcl_publisher_t WheelPublisher;
 
 rcl_publisher_t LeftVoltagePublisher;
 rcl_publisher_t RightVoltagePublisher;
@@ -96,8 +98,7 @@ std_msgs__msg__Float64 pos_msg;
 sensor_msgs__msg__JointState joint_publish_msg;
 nav_msgs__msg__Odometry odom_msg;
 std_msgs__msg__Float64 odom_flag_msg;
-std_msgs__msg__Float64 left_wheel_msg;
-std_msgs__msg__Float64 right_wheel_msg;
+geometry_msgs__msg__Vector3 wheel_pos_msg;
 geometry_msgs__msg__Vector3 left_voltage_msg;
 geometry_msgs__msg__Vector3 right_voltage_msg;
 

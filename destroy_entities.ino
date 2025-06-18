@@ -7,8 +7,8 @@ void destroy_entities()
   // rcl_publisher_fini(&TFpublisher, &node);
   rcl_subscription_fini(&joint_state_subscriber, &node);
   rcl_subscription_fini(&pos_subscriber, &node);
-  rcl_publisher_fini(&LeftWheelPublisher, &node);
-  rcl_publisher_fini(&RightWheelPublisher, &node);
+  rcl_publisher_fini(&WheelPublisher, &node);
+  // rcl_publisher_fini(&RightWheelPublisher, &node);
 
   rcl_publisher_fini(&LeftVoltagePublisher, &node);
   rcl_publisher_fini(&RightVoltagePublisher, &node);

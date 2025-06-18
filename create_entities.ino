@@ -34,35 +34,35 @@ bool create_entities()
     //     &node,
     //     ROSIDL_GET_MSG_TYPE_SUPPORT(nav_msgs, msg, Odometry),
     //     "/diff_drive_controller/odom"));
-    RCCHECK(rclc_publisher_init_default(
-        &LeftWheelPublisher,
-        &node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float64),
-        "/left_wheel_pos"));
-    // RCCHECK(rclc_publisher_init_best_effort(
+    // RCCHECK(rclc_publisher_init_default(
     //     &LeftWheelPublisher,
     //     &node,
-    //     ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Vector3),
-    //     "/wheel_poses"));
-
-    RCCHECK(rclc_publisher_init_default(
-        &RightWheelPublisher,
+    //     ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float64),
+    //     "/left_wheel_pos"));
+    RCCHECK(rclc_publisher_init_best_effort(
+        &WheelPublisher,
         &node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float64),
-        "/right_wheel_pos"));
+        ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Vector3),
+        "/wheel_poses"));
+
+    // RCCHECK(rclc_publisher_init_default(
+    //     &RightWheelPublisher,
+    //     &node,
+    //     ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float64),
+    //     "/right_wheel_pos"));
 
         RCCHECK(rclc_publisher_init_default(
         &LeftVoltagePublisher,
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Vector3),
-        "/m16_power")); //Request to change name to "m16_posVel"
+        "/m16_posVel")); //Request to change name to "m16_posVel"
 
 
         RCCHECK(rclc_publisher_init_default(
         &RightVoltagePublisher,
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Vector3),
-        "/m19_power")); //Request to change name to "m19_posVel"
+        "/m19_posVel")); //Request to change name to "m19_posVel"
 
 
         // RCCHECK(rclc_publisher_init_default(
@@ -96,7 +96,6 @@ bool create_entities()
     RCCHECK(rclc_executor_add_subscription(&executor, &pos_subscriber, &pos_msg, &position_callback, ON_NEW_DATA));
     RCCHECK(rclc_executor_add_timer(&executor, &timer));
 
-    left_wheel_msg.data = 0;
-    right_wheel_msg.data = 0;
+
     return true;
 }
