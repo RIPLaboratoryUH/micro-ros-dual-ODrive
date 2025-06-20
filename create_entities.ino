@@ -95,7 +95,9 @@ bool create_entities()
     RCCHECK(rclc_executor_add_subscription(&executor, &odom_flag_subscriber, &odom_flag_msg, &flag_callback, ON_NEW_DATA));
     RCCHECK(rclc_executor_add_subscription(&executor, &pos_subscriber, &pos_msg, &position_callback, ON_NEW_DATA));
     RCCHECK(rclc_executor_add_timer(&executor, &timer));
-
+    wheel_pos_msg.x = 0.0; // Initialize wheel position message
+    wheel_pos_msg.y = 0.0; // Initialize wheel position message
+    wheel_pos_msg.z = 0.0; // Initialize wheel position message
 
     return true;
 }

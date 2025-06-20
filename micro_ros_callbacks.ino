@@ -13,15 +13,15 @@ void subscription_callback(const void *msgin)
 void flag_callback(const void *msgin)
 {
   const std_msgs__msg__Float64 *msg = (const std_msgs__msg__Float64 *)msgin;
- 
-  if (msg->data == 0)// if the message is 0, set odrives to idle state (sort of estop?)
+
+  if (msg->data == 0) // if the message is 0, set odrives to idle state (sort of estop?)
   {
     odrv16.setState(ODriveAxisState::AXIS_STATE_IDLE);
     odrv19.setState(ODriveAxisState::AXIS_STATE_IDLE);
     odrv16.setControllerMode(0, 0);
     odrv19.setControllerMode(0, 0);
   }
-   if (msg->data == 1) // if the message is 1, reset odrives and encoder position
+  if (msg->data == 1) // if the message is 1, reset odrives and encoder position
   {
     // turn on led
     digitalWrite(LED_PIN, HIGH);
@@ -49,13 +49,13 @@ void flag_callback(const void *msgin)
     odrv16.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
     odrv19.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
     odrv16.setControllerMode(3, 5);
-    odrv19.setControllerMode(3, 5); 
+    odrv19.setControllerMode(3, 5);
     odrv16.setTrapezoidalVelLimit(VEL_LIMIT);
     odrv19.setTrapezoidalVelLimit(VEL_LIMIT);
     odrv16.setTrapezoidalAccelLimits(ACCEL_LIMIT, DECEL_LIMIT);
     odrv19.setTrapezoidalAccelLimits(ACCEL_LIMIT, DECEL_LIMIT);
   }
-  if(msg->data == 3) // if the message is 3, set odrives to velocity control with ramped vel input
+  if (msg->data == 3) // if the message is 3, set odrives to velocity control with ramped vel input
   {
     odrv16.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
     odrv19.setState(ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL);
@@ -84,7 +84,8 @@ void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
 {
   time_ns_now = rmw_uros_epoch_nanos();
   // time_microseconds_now = time_ns_now / 1000;
-
+  if (odrv16_user_data.received_feedback && odrv19_user_data.received_feedback)
+  {
     Get_Encoder_Estimates_msg_t feedback16 = odrv16_user_data.last_feedback;
     odrv16_user_data.received_feedback = false;
     lwpos = feedback16.Pos_Estimate;
@@ -93,7 +94,6 @@ void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
 
     wheel_pos_msg.y = lwpos;
     lwpos = 0;
-
 
     Get_Encoder_Estimates_msg_t feedback19 = odrv19_user_data.last_feedback;
     odrv19_user_data.received_feedback = false;
@@ -104,22 +104,18 @@ void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
     wheel_pos_msg.z = rwpos;
     rwpos = 0;
 
-
- 
-
-
     wheel_pos_msg.x = time_ns_now; // set the timestamp for the wheel positions
     rcl_publish(&WheelPublisher, &wheel_pos_msg, NULL);
+  }
 
-    //     odrv16.request(pwrMsg16, 1);
-    // left_voltage_msg.x = time_microseconds_now; 
-    // left_voltage_msg.y = feedback16.Pos_Estimate; 
-    // left_voltage_msg.z = feedback16.Vel_Estimate;
-    // rcl_publish(&LeftVoltagePublisher, &left_voltage_msg, NULL);
-    //     odrv19.request(pwrMsg19,1);
-    // right_voltage_msg.x = time_microseconds_now; 
-    // right_voltage_msg.y = feedback19.Pos_Estimate; 
-    // right_voltage_msg.z = feedback19.Vel_Estimate;
-    // rcl_publish(&RightVoltagePublisher, &right_voltage_msg, NULL);
-  
+  //     odrv16.request(pwrMsg16, 1);
+  // left_voltage_msg.x = time_microseconds_now;
+  // left_voltage_msg.y = feedback16.Pos_Estimate;
+  // left_voltage_msg.z = feedback16.Vel_Estimate;
+  // rcl_publish(&LeftVoltagePublisher, &left_voltage_msg, NULL);
+  //     odrv19.request(pwrMsg19,1);
+  // right_voltage_msg.x = time_microseconds_now;
+  // right_voltage_msg.y = feedback19.Pos_Estimate;
+  // right_voltage_msg.z = feedback19.Vel_Estimate;
+  // rcl_publish(&RightVoltagePublisher, &right_voltage_msg, NULL);
 }
