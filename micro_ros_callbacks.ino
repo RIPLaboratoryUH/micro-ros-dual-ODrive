@@ -83,16 +83,19 @@ void position_callback(const void *msgin)
 void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
 {
   time_ns_now = rmw_uros_epoch_nanos();
-  time_microseconds_now = time_ns_now / 1000;
+  // time_microseconds_now = time_ns_now / 1000;
 
     Get_Encoder_Estimates_msg_t feedback16 = odrv16_user_data.last_feedback;
-    Get_Encoder_Estimates_msg_t feedback19 = odrv19_user_data.last_feedback;
     odrv16_user_data.received_feedback = false;
     lwpos = feedback16.Pos_Estimate;
     lwpos = lwpos / GEARRATIO;
     lwpos = lwpos * 2 * PI;
+
     wheel_pos_msg.y = lwpos;
     lwpos = 0;
+
+
+    Get_Encoder_Estimates_msg_t feedback19 = odrv19_user_data.last_feedback;
     odrv19_user_data.received_feedback = false;
     rwpos = feedback19.Pos_Estimate;
     rwpos = rwpos * -1;
@@ -100,6 +103,11 @@ void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
     rwpos = rwpos * 2 * PI;
     wheel_pos_msg.z = rwpos;
     rwpos = 0;
+
+
+ 
+
+
     wheel_pos_msg.x = time_ns_now; // set the timestamp for the wheel positions
     rcl_publish(&WheelPublisher, &wheel_pos_msg, NULL);
 

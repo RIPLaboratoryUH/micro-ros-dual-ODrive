@@ -39,7 +39,7 @@ bool create_entities()
     //     &node,
     //     ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float64),
     //     "/left_wheel_pos"));
-    RCCHECK(rclc_publisher_init_best_effort(
+    RCCHECK(rclc_publisher_init_default(
         &WheelPublisher,
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Vector3),
