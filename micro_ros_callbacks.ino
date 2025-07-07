@@ -28,16 +28,7 @@ void flag_callback(const void *msgin)
     odrv16.reset(0);
     odrv19.reset(0);
     setupODrive(); // re-setup the odrive after reset
-    digitalToggle(LED_PIN);
-    delay(100);
-    digitalToggle(LED_PIN);
-    delay(100);
-    digitalToggle(LED_PIN);
-    delay(100);
-    digitalToggle(LED_PIN);
-    delay(100);
-    digitalToggle(LED_PIN);
-    delay(100);
+    blink_led(5, 500);
     delay(2000); // wait for the odrive to reset
     odrv16.clearErrors();
     odrv19.clearErrors();
@@ -113,6 +104,12 @@ counter++;
     wheel_pos_msg.x = time_ns_now; // set the timestamp for the wheel positions
     rcl_publish(&WheelPublisher, &wheel_pos_msg, NULL);
   }
+  else
+  {
+    wheel_pos_msg.x = 67; // set the timestamp for the wheel positions
+    rcl_publish(&WheelPublisher, &wheel_pos_msg, NULL);
+  }
+  
   counter = 0; // reset the counter
   //     odrv16.request(pwrMsg16, 1);
   // left_voltage_msg.x = time_microseconds_now;
