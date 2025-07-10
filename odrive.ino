@@ -1,19 +1,18 @@
+// Called every time a Heartbeat message arrives from the ODrive
+void onHeartbeat(Heartbeat_msg_t& msg, void* user_data) {
+  ODriveUserData* odrv_user_data = static_cast<ODriveUserData*>(user_data);
+  odrv_user_data->last_heartbeat = msg;
+  odrv_user_data->received_heartbeat = true;
+}
 
 // Called every time a feedback message arrives from the ODrive
-void onFeedback(Get_Encoder_Estimates_msg_t &msg, void *user_data)
-{
-    ODriveUserData *odrv_user_data = static_cast<ODriveUserData *>(user_data);
-    odrv_user_data->last_feedback = msg;
-    odrv_user_data->received_feedback = true;
+void onFeedback(Get_Encoder_Estimates_msg_t& msg, void* user_data) {
+  ODriveUserData* odrv_user_data = static_cast<ODriveUserData*>(user_data);
+  odrv_user_data->last_feedback = msg;
+  odrv_user_data->received_feedback = true;
+  digitalToggle(LED_PIN); // Toggle the LED to indicate feedback received
 }
 
-// Called every time a Heartbeat message arrives from the ODrive
-void onHeartbeat(Heartbeat_msg_t &msg, void *user_data)
-{
-    ODriveUserData *odrv_user_data = static_cast<ODriveUserData *>(user_data);
-    odrv_user_data->last_heartbeat = msg;
-    odrv_user_data->received_heartbeat = true;
-}
 //called once to set up the ODrive in setup()
 void setupODrive()
 {
@@ -36,7 +35,7 @@ void setupODrive()
     //sets the controller mode to velocity control with ramped vel input
     // odrv16.setControllerMode(2,2);
     // odrv19.setControllerMode(2,2);
-
+blink_led(3, 100); // blink the LED 3 times to indicate setup is starting
     while(odrv16_user_data.last_heartbeat.Axis_State != ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL or odrv19_user_data.last_heartbeat.Axis_State != ODriveAxisState::AXIS_STATE_CLOSED_LOOP_CONTROL)
     {
 
@@ -48,18 +47,20 @@ odrv16.setTrapezoidalVelLimit(VEL_LIMIT);
     odrv19.setTrapezoidalVelLimit(VEL_LIMIT);
     odrv16.setTrapezoidalAccelLimits(ACCEL_LIMIT, DECEL_LIMIT);
     odrv19.setTrapezoidalAccelLimits(ACCEL_LIMIT, DECEL_LIMIT);
-        digitalToggle(LED_PIN);
-        delay(1000);
-        digitalToggle(LED_PIN);
-        delay(1000);
-        digitalToggle(LED_PIN);
-        delay(1000);
-        digitalToggle(LED_PIN);
-        for (int i = 0; i < 15; ++i)
-        {
-            delay(10);
+
+        uint32_t t_start = millis();
+        const uint32_t t_poll_duration = 150;
+        while (millis() < t_start + t_poll_duration) {
             pumpEvents(can_intf);
         }
-        break;
+
+          while (!odrv16_user_data.received_feedback) {
+        pumpEvents(can_intf);
     }
+    
+    
+    }
+blink_led(5, 100); // blink the LED 3 times to indicate setup is starting
+
+
 }

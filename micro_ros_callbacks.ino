@@ -25,10 +25,9 @@ void flag_callback(const void *msgin)
   {
     // turn on led
     digitalWrite(LED_PIN, HIGH);
-    odrv16.reset(0);
-    odrv19.reset(0);
+    // odrv16.reset(0);
+    // odrv19.reset(0);
     setupODrive(); // re-setup the odrive after reset
-    blink_led(5, 500);
     delay(2000); // wait for the odrive to reset
     odrv16.clearErrors();
     odrv19.clearErrors();
@@ -58,7 +57,7 @@ void flag_callback(const void *msgin)
 }
 void position_callback(const void *msgin)
 {
-  delay(1000);
+  
   const std_msgs__msg__Float64 *msg = (const std_msgs__msg__Float64 *)msgin;
 
   float pos = msg->data;
@@ -74,43 +73,56 @@ void position_callback(const void *msgin)
 int counter = 0;
 void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
 {
-  time_ns_now = rmw_uros_epoch_nanos();
-  // time_microseconds_now = time_ns_now / 1000;
-  if (odrv16_user_data.received_feedback)
-  {
-    Get_Encoder_Estimates_msg_t feedback16 = odrv16_user_data.last_feedback;
-    odrv16_user_data.received_feedback = false;
+  // // time_microseconds_now = time_ns_now / 1000;
+  // if (odrv16_user_data.received_feedback)
+  // {
+  //   Get_Encoder_Estimates_msg_t feedback16 = odrv16_user_data.last_feedback;
+  //   odrv16_user_data.received_feedback = false;
+  //   lwpos = feedback16.Pos_Estimate;
+  //   lwpos = lwpos / GEARRATIO;
+  //   lwpos = lwpos * 2 * PI;
+    
+  //   wheel_pos_msg.y = lwpos;
+  //   lwpos = 0;
+
+  // }
+  // else{
+  //   // blink_led(1, 100); // blink the LED to indicate that no feedback is received
+  // }
+  // if( odrv19_user_data.received_feedback){
+    
+  //   Get_Encoder_Estimates_msg_t feedback19 = odrv19_user_data.last_feedback;
+  //   odrv19_user_data.received_feedback = false;
+  //   rwpos = feedback19.Pos_Estimate;
+  //   rwpos = rwpos * -1;
+  //   rwpos = rwpos / GEARRATIO;
+  //   rwpos = rwpos * 2 * PI;
+  //   wheel_pos_msg.z = rwpos;
+  //   rwpos = 0;
+    
+  // }else
+  // {
+  //   // blink_led(2, 100); // blink the LED to indicate that no feedback is received
+  // }
+      Get_Encoder_Estimates_msg_t feedback16 = odrv16_user_data.last_feedback;
     lwpos = feedback16.Pos_Estimate;
     lwpos = lwpos / GEARRATIO;
     lwpos = lwpos * 2 * PI;
-
+    
     wheel_pos_msg.y = lwpos;
     lwpos = 0;
-    counter++;
-  }
-  if( odrv19_user_data.received_feedback){
-    Get_Encoder_Estimates_msg_t feedback19 = odrv19_user_data.last_feedback;
-    odrv19_user_data.received_feedback = false;
+
+     Get_Encoder_Estimates_msg_t feedback19 = odrv19_user_data.last_feedback;
     rwpos = feedback19.Pos_Estimate;
     rwpos = rwpos * -1;
     rwpos = rwpos / GEARRATIO;
     rwpos = rwpos * 2 * PI;
     wheel_pos_msg.z = rwpos;
     rwpos = 0;
-counter++;
-  }
-  if (counter >=1){
-
-    wheel_pos_msg.x = time_ns_now; // set the timestamp for the wheel positions
-    rcl_publish(&WheelPublisher, &wheel_pos_msg, NULL);
-  }
-  else
-  {
-    wheel_pos_msg.x = 67; // set the timestamp for the wheel positions
-    rcl_publish(&WheelPublisher, &wheel_pos_msg, NULL);
-  }
+  time_ns_now = rmw_uros_epoch_nanos();
+  wheel_pos_msg.x = time_ns_now; // set the timestamp for the wheel positions
+  rcl_publish(&WheelPublisher, &wheel_pos_msg, NULL);
   
-  counter = 0; // reset the counter
   //     odrv16.request(pwrMsg16, 1);
   // left_voltage_msg.x = time_microseconds_now;
   // left_voltage_msg.y = feedback16.Pos_Estimate;
